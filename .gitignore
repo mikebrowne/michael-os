@@ -16,6 +16,7 @@ config/local.*
 # Build output
 dist/
 build/
+.mastra/output/
 *.tsbuildinfo
 
 # Test and coverage

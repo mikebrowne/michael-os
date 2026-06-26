@@ -19,7 +19,8 @@ GitHub Projects is the kanban for buildable work. Configure it in the GitHub UI 
 | [AGENTS.md](../AGENTS.md) | Operating rules for humans and agents |
 | [init.md](../init.md) | Full build plan (Phases 0–14) |
 | [docs/prds/michael-os-foundation.md](./prds/michael-os-foundation.md) | Phase 0/1 product PRD |
-| [docs/prds/michael-os-foundation-builder.md](./prds/michael-os-foundation-builder.md) | Implementation brief |
+| [docs/local-dev.md](./local-dev.md) | Mac mini / local setup |
+| [docs/push-to-github.md](./push-to-github.md) | Manual GitHub push steps |
 | [docs/adr/](./adr/) | Architecture decisions |
 
 ## ADRs
