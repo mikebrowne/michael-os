@@ -1,0 +1,5 @@
+# Public-safe Vault boundary
+
+The repository is public-safe by default, but the harness must operate against the operator's private knowledge. We draw a hard boundary: the real Vault (the operator's Obsidian vault) lives entirely outside the tracked repo and is reached only through a `VAULT_PATH` configured in `.env`, which is never committed. For tests and local demos we commit a small, fully fake Demo vault at `examples/demo-vault/`. Run logs and runtime state are local-only, written to gitignored `./.logs/` and `.mastra/`. Private/local config follows an `.env` + gitignored `config/local.*` pattern, with `.env.example` and tracked default config as the only public templates.
+
+This is a boundary/scope decision and a constraint not visible from the code alone: a future contributor must never make the runtime read or commit the real Vault. Enforcement is layered — `.gitignore` rules, an `.env.example`-only policy, and a gitleaks CI job — so the default path is always the safe one. The explicit no (the real Vault is never tracked, never referenced by a committed path) is as important as the yes.

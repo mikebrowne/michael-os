@@ -1,0 +1,42 @@
+name: Spec
+description: Propose a spec or design for review before implementation
+title: "[Spec]: "
+labels: ["spec"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Specs become reviewable artifacts before code lands. Keep private data out of the issue body.
+  - type: textarea
+    id: summary
+    attributes:
+      label: Summary
+      description: One or two sentences on what this spec covers.
+    validations:
+      required: true
+  - type: textarea
+    id: user-stories
+    attributes:
+      label: User stories
+      placeholder: "As the operator, I want ..., so that ..."
+    validations:
+      required: true
+  - type: textarea
+    id: decisions
+    attributes:
+      label: Key decisions
+      description: Boundaries, trade-offs, and what is out of scope.
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Acceptance criteria
+      description: How do we know this is done?
+    validations:
+      required: true
+  - type: checkboxes
+    id: safety
+    attributes:
+      label: Safety check
+      options:
+        - label: This issue contains no secrets or private data
+          required: true

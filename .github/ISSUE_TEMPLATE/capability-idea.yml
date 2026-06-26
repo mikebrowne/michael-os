@@ -1,0 +1,41 @@
+name: Capability idea
+description: Capture an idea for a future agent, tool, workflow, or skill
+title: "[Idea]: "
+labels: ["idea"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Ideas for future capabilities. No implementation in this issue — just enough to track and prioritize.
+  - type: dropdown
+    id: kind
+    attributes:
+      label: Kind
+      options:
+        - Agent
+        - Tool
+        - Workflow
+        - Skill
+        - Department
+        - Other
+    validations:
+      required: true
+  - type: textarea
+    id: idea
+    attributes:
+      label: Idea
+      description: What would this capability do for the operator?
+    validations:
+      required: true
+  - type: textarea
+    id: dependencies
+    attributes:
+      label: Dependencies
+      description: What must exist first?
+  - type: checkboxes
+    id: safety
+    attributes:
+      label: Safety check
+      options:
+        - label: This issue contains no secrets or private data
+          required: true

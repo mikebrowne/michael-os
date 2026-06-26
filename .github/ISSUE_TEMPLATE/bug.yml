@@ -1,0 +1,37 @@
+name: Bug report
+description: Report a defect or unexpected behavior
+title: "[Bug]: "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting. Do not include secrets, private Vault content, or personal data.
+  - type: textarea
+    id: description
+    attributes:
+      label: What happened?
+      description: Describe the bug and what you expected instead.
+    validations:
+      required: true
+  - type: textarea
+    id: repro
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. Run ...
+        2. See error ...
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Environment
+      placeholder: Node 20, OS, commit hash
+  - type: checkboxes
+    id: safety
+    attributes:
+      label: Safety check
+      options:
+        - label: This issue contains no secrets or private data
+          required: true

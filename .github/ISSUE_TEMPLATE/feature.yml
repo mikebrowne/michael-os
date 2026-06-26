@@ -1,0 +1,41 @@
+name: Feature request
+description: Propose a new capability for MichaelOS
+title: "[Feature]: "
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Propose a thin vertical slice when possible. Link related ADRs or PRDs if they exist.
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem
+      description: What problem does this solve for the operator?
+    validations:
+      required: true
+  - type: textarea
+    id: solution
+    attributes:
+      label: Proposed solution
+      description: High-level approach — no implementation details required.
+    validations:
+      required: true
+  - type: dropdown
+    id: phase
+    attributes:
+      label: Target phase (from init.md)
+      options:
+        - Phase 0 — Public-safe repo
+        - Phase 1 — Minimal runtime
+        - Phase 2 — First engineering loop
+        - Phase 3+ — Later
+    validations:
+      required: true
+  - type: checkboxes
+    id: safety
+    attributes:
+      label: Safety check
+      options:
+        - label: This issue contains no secrets or private data
+          required: true
