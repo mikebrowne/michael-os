@@ -1,0 +1,12 @@
+---
+description: Build thin vertical slices, not complete subsystems
+alwaysApply: true
+---
+
+# Thin vertical slices
+
+- Build complete loops end-to-end, then deepen each layer.
+- Do not overbuild: prefer the smallest useful slice that proves the path.
+- Phase 0/1 scope: public-safe repo + minimal Mastra runtime only.
+- Defer Chief of Staff, delegation, job queues, Obsidian, scheduling, authoring agents, and the full skill system.
+- Code for deterministic work; LLMs for judgment.

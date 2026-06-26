@@ -1,0 +1,12 @@
+---
+description: Public-safety rules for MichaelOS — no secrets, no private data in the repo
+alwaysApply: true
+---
+
+# Public-safe by default
+
+- Never commit `.env`, real API keys, webhook URLs, or personal data.
+- The real Vault lives outside the repo; only `VAULT_PATH` placeholder in `.env.example`.
+- Tests and demos use the committed Demo vault at `examples/demo-vault/` only.
+- Run logs go to gitignored `./.logs/`; runtime state to `.mastra/`.
+- Use `.env.example` for documenting env vars; never real values.

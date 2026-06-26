@@ -1,0 +1,12 @@
+---
+description: Reversibility — small commits, tests, and rollback-friendly changes
+alwaysApply: true
+---
+
+# Reversibility
+
+- Deliver work as small, isolated commits with clear messages.
+- Every new capability should be removable without breaking unrelated code.
+- Prefer feature flags or optional modules over irreversible wiring.
+- Add tests for new behavior so rollback is safe.
+- Do not force-push or rewrite history without operator approval.
