@@ -1,4 +1,5 @@
 {
   "appName": "MichaelOS",
-  "defaultModel": "openai/gpt-4o-mini"
+  "defaultModel": "openai/gpt-4o-mini",
+  "defaultCodingModel": "composer-2.5"
 }

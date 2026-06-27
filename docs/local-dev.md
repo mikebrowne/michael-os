@@ -24,9 +24,11 @@ Optional: [GitHub CLI](https://cli.github.com/) (`gh`) for creating issues or op
    cp .env.example .env
    ```
 
-3. Set `OPENAI_API_KEY` in `.env` for the local demo script (`npm run demo`). CI does not use this key.
+3. Set `OPENAI_API_KEY` in `.env` for the local demo script (`npm run demo`) and spec agent (`npm run agent:build`). CI does not use this key.
 
-4. Leave `VAULT_PATH` unset to use the committed **Demo vault** at `examples/demo-vault/`. To point at your real Vault, set an absolute path outside the repo.
+4. Set `CURSOR_API_KEY` in `.env` for the Cursor coding executor (`npm run agent:build`). Obtain from [Cursor Dashboard → Integrations](https://cursor.com/dashboard/integrations). CI does not use this key.
+
+5. Leave `VAULT_PATH` unset to use the committed **Demo vault** at `examples/demo-vault/`. To point at your real Vault, set an absolute path outside the repo.
 
 ## Run the harness
 
@@ -41,6 +43,14 @@ Run the local demo (deterministic workflow + live OpenAI agent call):
 ```bash
 npm run demo
 ```
+
+Run the spec-to-Cursor build loop (requires `OPENAI_API_KEY` and `CURSOR_API_KEY`):
+
+```bash
+npm run agent:build -- "Your plain English build request"
+```
+
+Artifacts land in gitignored `./ai-runs/`; see [docs/adr/0003-cursor-coding-executor.md](./adr/0003-cursor-coding-executor.md).
 
 ## Run logs
 

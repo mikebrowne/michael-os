@@ -12,6 +12,7 @@ config/local.*
 # Runtime state and logs
 .mastra/
 .logs/
+ai-runs/
 
 # Build output
 dist/

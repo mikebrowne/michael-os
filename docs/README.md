@@ -90,3 +90,4 @@ gh issue list
 
 - [0001 — Mastra runtime](./adr/0001-mastra-runtime.md)
 - [0002 — Public-safe Vault boundary](./adr/0002-public-safe-vault-boundary.md)
+- [0003 — Cursor coding executor](./adr/0003-cursor-coding-executor.md)

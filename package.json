@@ -15,9 +15,11 @@
     "typecheck": "tsc --noEmit",
     "lint": "eslint .",
     "test": "vitest run",
-    "demo": "tsx scripts/demo.ts"
+    "demo": "tsx scripts/demo.ts",
+    "agent:build": "tsx scripts/agentBuild.ts"
   },
   "dependencies": {
+    "@cursor/sdk": "^1.0.22",
     "@mastra/core": "^1.46.0",
     "@mastra/loggers": "^1.2.0",
     "dotenv": "^16.4.7",
