@@ -12,6 +12,7 @@ The **Engineering Lead** loads these from `skills/<name>/SKILL.md` via `src/skil
 | `to-prd` | [to-prd/SKILL.md](./to-prd/SKILL.md) | Produce PRD + GitHub issue | `docs/prds/<slug>.md`; issue created/updated |
 | `research-write-tests` | [research-write-tests/SKILL.md](./research-write-tests/SKILL.md) | Define "done" before build | Test plan in PRD + one hash-locked acceptance test |
 | `build-handoff` | [build-handoff/SKILL.md](./build-handoff/SKILL.md) | Bundle PRD + acceptance test → `runAgentBuild` | Build run + D+ report in chat |
+| `ship` | [ship/SKILL.md](./ship/SKILL.md) | Commit planning docs or green implementation | `ship-docs` / `ship-implementation` tools |
 
 See [docs/phase-2-engineering-loop.md](../docs/phase-2-engineering-loop.md) for the full north star and grill decisions.
 

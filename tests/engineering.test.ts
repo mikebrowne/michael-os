@@ -11,6 +11,10 @@ import {
   parseIssueNumberFromCreateOutput,
 } from "../src/engineering/github.js";
 import {
+  createGatewayMemorySession,
+  gatewayMemoryOptions,
+} from "../src/engineering/gatewaySession.js";
+import {
   createApprovalState,
   grantApproval,
   consumeApproval,
@@ -27,6 +31,15 @@ import { evaluateRedGreenGates } from "../src/agentBuild/gates.js";
 import { mkdtempSync, rmSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
+
+describe("gatewaySession", () => {
+  it("creates stable memory options for a session", () => {
+    const session = createGatewayMemorySession();
+    const opts = gatewayMemoryOptions(session);
+    expect(opts.memory.thread).toBe(session.threadId);
+    expect(opts.memory.resource).toBe("operator");
+  });
+});
 
 describe("skillLoader", () => {
   it("parses SKILL.md frontmatter", () => {
