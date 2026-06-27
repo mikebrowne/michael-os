@@ -31,7 +31,7 @@ Stable backlog IDs (`BL-NNN`) live in issue titles, e.g. `[BL-004] First end-to-
 | ID | Issue |
 |----|-------|
 | BL-003 | [#1](https://github.com/mikebrowne/michael-os/issues/1) |
-| BL-004 | [#2](https://github.com/mikebrowne/michael-os/issues/2) |
+| BL-004 | [#2](https://github.com/mikebrowne/michael-os/issues/2) — **in progress** (executor MVP done; orchestration slice open) |
 | BL-005 | [#3](https://github.com/mikebrowne/michael-os/issues/3) |
 | BL-006 | [#4](https://github.com/mikebrowne/michael-os/issues/4) |
 | BL-007 | [#5](https://github.com/mikebrowne/michael-os/issues/5) |
@@ -39,7 +39,20 @@ Stable backlog IDs (`BL-NNN`) live in issue titles, e.g. `[BL-004] First end-to-
 | BL-009 | [#7](https://github.com/mikebrowne/michael-os/issues/7) |
 | BL-010 | [#8](https://github.com/mikebrowne/michael-os/issues/8) |
 
-**Next build:** [BL-004 / issue #2](https://github.com/mikebrowne/michael-os/issues/2) — move to **Ready** on the board when starting Phase 2.
+**Next build:** [BL-004 / issue #2](https://github.com/mikebrowne/michael-os/issues/2) — engineering delegation agent + skill pipeline. See [phase-2-engineering-loop.md](./phase-2-engineering-loop.md).
+
+## Key docs
+
+| Doc | Purpose |
+|-----|---------|
+| [phase-2-engineering-loop.md](./phase-2-engineering-loop.md) | Phase 2 north star, grill decisions, delivery slices |
+| [CONTEXT.md](../CONTEXT.md) | Domain glossary |
+| [AGENTS.md](../AGENTS.md) | Operating rules for humans and agents |
+| [init.md](../init.md) | Full build plan (Phases 0–14) |
+| [prds/michael-os-foundation.md](./prds/michael-os-foundation.md) | Phase 0/1 product PRD |
+| [local-dev.md](./local-dev.md) | Mac mini / local setup |
+| [push-to-github.md](./push-to-github.md) | Manual GitHub push steps |
+| [adr/](./adr/) | Architecture decisions |
 
 ## GitHub Projects setup
 
@@ -73,18 +86,6 @@ You do **not** need `gh` to track work. Use the GitHub web UI:
 gh issue create --template bug.yml
 gh issue list
 ```
-
-## Key docs
-
-| Doc | Purpose |
-|-----|---------|
-| [CONTEXT.md](../CONTEXT.md) | Domain glossary |
-| [AGENTS.md](../AGENTS.md) | Operating rules for humans and agents |
-| [init.md](../init.md) | Full build plan (Phases 0–14) |
-| [docs/prds/michael-os-foundation.md](./prds/michael-os-foundation.md) | Phase 0/1 product PRD |
-| [docs/local-dev.md](./local-dev.md) | Mac mini / local setup |
-| [docs/push-to-github.md](./push-to-github.md) | Manual GitHub push steps |
-| [docs/adr/](./adr/) | Architecture decisions |
 
 ## ADRs
 
