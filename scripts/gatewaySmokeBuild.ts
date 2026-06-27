@@ -35,7 +35,7 @@ async function main() {
   let response = await agent.generate(message);
   let text = response.text ?? "(no response)";
 
-  if (ctx.approval.pending === "run-build") {
+  if (ctx.approval.pending?.toolId === "run-build") {
     console.log(`\n--- ${needsApprovalMessage("run-build")} ---`);
     grantApproval(ctx.approval, "run-build");
     console.log("--- auto-approved YES (retry) ---\n");

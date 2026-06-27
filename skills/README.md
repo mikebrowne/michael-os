@@ -14,6 +14,14 @@ The **Engineering Lead** loads these from `skills/<name>/SKILL.md` via `src/skil
 | `build-handoff` | [build-handoff/SKILL.md](./build-handoff/SKILL.md) | Bundle PRD + acceptance test → `runAgentBuild` | Build run + D+ report in chat |
 | `ship` | [ship/SKILL.md](./ship/SKILL.md) | Commit planning docs or green implementation | `ship-docs` / `ship-implementation` tools |
 
+## Phase 3 skills (Code Reviewer)
+
+| Skill | Path | Agent | Deliverable |
+|-------|------|-------|-------------|
+| `code-review` | [code-review/SKILL.md](./code-review/SKILL.md) | Code Reviewer | Advisory verdict (`approve` / `request-changes` / `block`) via `review-build` |
+
+Department roster is defined in `src/mastra/agentRegistry.ts`. See [docs/phase-3-engineering-department.md](../docs/phase-3-engineering-department.md).
+
 See [docs/phase-2-engineering-loop.md](../docs/phase-2-engineering-loop.md) for the full north star and grill decisions.
 
 ## Phase 6 (deferred)

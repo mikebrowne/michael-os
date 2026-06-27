@@ -30,6 +30,7 @@ export type RunDirectory = {
   preflightLogPath: string;
   diffPath: string;
   resultPath: string;
+  manifestPath: string;
 };
 
 export function createRunDirectory(
@@ -58,6 +59,7 @@ export function createRunDirectory(
     preflightLogPath: join(runDir, "preflight.log"),
     diffPath: join(runDir, "git-diff.patch"),
     resultPath: join(runDir, "result.md"),
+    manifestPath: join(runDir, "build-manifest.json"),
   };
 
   writeFileSync(paths.requestPath, `${request.trim()}\n`, "utf-8");

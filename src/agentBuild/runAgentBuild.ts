@@ -28,6 +28,11 @@ import { createCursorExecutor } from "./executor.js";
 import { writeResult } from "./result.js";
 import type { CodingExecutorResult, PreflightResult } from "./types.js";
 import type { RedGreenGateOutcome } from "./gates.js";
+import { execSync } from "node:child_process";
+import {
+  writeBuildManifest,
+  type BuildManifest,
+} from "../engineering/buildManifest.js";
 
 export type SuppliedBuildSpec = {
   specMd: string;
@@ -60,6 +65,8 @@ export type RunAgentBuildResult = {
   changedFiles: string[];
   gitDiff: string;
   markdown: string;
+  manifestPath?: string;
+  acceptanceHash?: string;
 };
 
 const DEFAULT_ACCEPTANCE_PATH = "tests/acceptance/agent-build.test.ts";
@@ -111,6 +118,7 @@ export async function runAgentBuild(
   let specSummary = "Spec not generated.";
   let acceptanceHash = "";
   let acceptanceRelativePath = DEFAULT_ACCEPTANCE_PATH;
+  let baseCommit = "";
 
   runLogger?.log({
     runId,
@@ -132,6 +140,11 @@ export async function runAgentBuild(
     }
 
     runLogger?.log({ runId, event: "agentBuild.spec", data: { runDir: paths.runDir } });
+
+    baseCommit = execSync("git rev-parse HEAD", {
+      cwd: repoPath,
+      encoding: "utf-8",
+    }).trim();
 
     progress(onProgress, "Creating isolated worktree...");
     worktreeInfo = createWorktree(repoPath, paths.worktreePath, paths.slug);
@@ -242,6 +255,20 @@ export async function runAgentBuild(
     worktreePath: paths.worktreePath,
   });
 
+  const manifest: BuildManifest = {
+    runId,
+    worktreePath: paths.worktreePath,
+    success,
+    acceptanceHash,
+    acceptanceRelativePath,
+    baseCommit,
+    changedFiles,
+    createdAt: new Date().toISOString(),
+    request,
+    runDir: paths.runDir,
+  };
+  const manifestPath = writeBuildManifest(paths.runDir, manifest);
+
   runLogger?.log({
     runId,
     event: "agentBuild.complete",
@@ -262,6 +289,8 @@ export async function runAgentBuild(
     changedFiles,
     gitDiff,
     markdown,
+    manifestPath,
+    acceptanceHash,
   };
 }
 

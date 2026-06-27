@@ -28,6 +28,8 @@ export type WorkItem = {
   acceptanceTestPath?: string;
   lastRunDir?: string;
   lastBuildSuccess?: boolean;
+  manifestPath?: string;
+  acceptanceHash?: string;
   createdAt: string;
   updatedAt: string;
 };

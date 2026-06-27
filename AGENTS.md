@@ -46,6 +46,10 @@ Use terms from `CONTEXT.md` verbatim:
 - Runtime state: `.mastra/` (gitignored)
 - Local config: `config/local.*` (gitignored)
 
+## Naming conventions
+
+Domain-qualify generic module names — no bare `registry.ts`, `manager.ts`, etc. Use `<domain>Registry` files and `<Domain>Registration` types (e.g. `agentRegistry.ts`, `AgentRegistration`). See `.cursor/rules/naming-conventions.mdc`.
+
 ## What not to build in this milestone
 
 Chief of Staff, delegation, job queues, Obsidian integration against the real Vault, scheduled jobs, authoring agents, and the full skill system are out of scope for Phase 0/1.

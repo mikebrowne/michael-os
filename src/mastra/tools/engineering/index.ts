@@ -18,15 +18,128 @@ import {
   consumeApproval,
   needsApprovalMessage,
   requestApproval,
+  grantApproval,
 } from "../../../engineering/approvalGate.js";
 import { shipDocs, shipImplementation } from "../../../engineering/ship.js";
 import { requireOpenAiKey, requireCursorKey } from "../../../config/loadConfig.js";
 import { createRunLogger } from "../../../logging/runLogger.js";
 import { randomUUID } from "node:crypto";
+import {
+  runCodeReview,
+  formatReviewVerdictReport,
+} from "../../../engineering/review.js";
+import {
+  rehydrateBuildFromWorkItem,
+  tryRehydrateBuildResult,
+} from "../../../engineering/buildManifest.js";
 
 const DEFAULT_ACCEPTANCE_RELATIVE = "tests/acceptance/agent-build.test.ts";
 
+type RunBuildInput = { slug: string; requestSummary?: string };
+type ShipDocsInput = { slug: string; commitMessage: string };
+type ShipImplementationInput = { commitMessage: string };
+
 export function createEngineeringTools(ctx: EngineeringSessionContext) {
+  async function executeRunBuildCore(input: RunBuildInput) {
+    const item = getWorkItem(ctx.config.stateDir, input.slug);
+    if (!item?.prdPath || !item.acceptanceTestPath) {
+      throw new Error("Work item missing PRD or acceptance test artifacts.");
+    }
+
+    const prdMd = readFileSync(item.prdPath, "utf-8");
+    const acceptanceTestContent = readFileSync(item.acceptanceTestPath, "utf-8");
+    const cursorTaskMd = `Read spec.md in the run folder. Implement only the requested scope from the PRD below. NEVER modify tests/acceptance/agent-build.test.ts. Use the tdd skill for unit tests.\n\n${prdMd}`;
+
+    requireOpenAiKey(ctx.config);
+    requireCursorKey(ctx.config);
+
+    const runLogger = createRunLogger({
+      logDir: ctx.config.logDir,
+      logLevel: ctx.config.logLevel,
+      name: ctx.config.appName,
+    });
+
+    const result = await runAgentBuild({
+      request: input.requestSummary ?? item.title,
+      config: ctx.config,
+      repoPath: ctx.repoPath,
+      runId: randomUUID(),
+      runLogger,
+      suppliedSpec: {
+        specMd: prdMd,
+        cursorTaskMd,
+        acceptanceTestRelativePath: DEFAULT_ACCEPTANCE_RELATIVE,
+        acceptanceTestContent,
+      },
+    });
+
+    ctx.lastBuildResult = result;
+    ctx.currentWorkItem = upsertWorkItem(ctx.config.stateDir, {
+      ...item,
+      stage: "build",
+      lastRunDir: result.runDir,
+      lastBuildSuccess: result.success,
+      manifestPath: result.manifestPath,
+      acceptanceHash: result.acceptanceHash,
+    });
+
+    const report = formatBuildChatReport(result, ctx.lastReviewVerdict);
+    return {
+      message: `${report.headline}\n\n${report.body}`,
+      success: result.success,
+      runDir: result.runDir,
+    };
+  }
+
+  async function executeShipDocsCore(input: ShipDocsInput) {
+    const paths = prdPaths(ctx.config.prdsDir, input.slug);
+    const toShip = [paths.prdPath, paths.grillNotesPath].filter((p) => existsSync(p));
+    if (toShip.length === 0) {
+      throw new Error("No planning docs found to ship.");
+    }
+
+    shipDocs(
+      { repoPath: ctx.repoPath, files: toShip, message: input.commitMessage },
+      ctx.gitRunner,
+    );
+
+    return { message: `Planning docs pushed for ${input.slug}.`, shipped: true };
+  }
+
+  async function executeShipImplementationCore(input: ShipImplementationInput) {
+    const buildResult = tryRehydrateBuildResult(ctx);
+    if (!buildResult || !isBuildGreen(buildResult)) {
+      throw new Error(
+        "Cannot ship implementation: no green build result in session. Rebuild if worktree expired.",
+      );
+    }
+    ctx.lastBuildResult = buildResult;
+    ctx.telemetry.logShipDecision(true, "ship-implementation");
+
+    const shipped = shipImplementation(
+      {
+        repoPath: ctx.repoPath,
+        worktreePath: buildResult.worktreePath,
+        buildResult,
+        message: input.commitMessage,
+        operatorConfirmed: true,
+      },
+      ctx.gitRunner,
+    );
+
+    if (ctx.currentWorkItem) {
+      ctx.currentWorkItem = upsertWorkItem(ctx.config.stateDir, {
+        ...ctx.currentWorkItem,
+        stage: "done",
+      });
+    }
+
+    return {
+      message: `Implementation shipped: ${shipped.join(", ")}`,
+      shipped: true,
+    };
+  }
+
   const saveGrillNotes = createTool({
     id: "save-grill-notes",
     description:
@@ -228,6 +341,10 @@ export function createEngineeringTools(ctx: EngineeringSessionContext) {
           : undefined;
       if (!item) return { found: false };
       ctx.currentWorkItem = item;
+      const rehydrated = rehydrateBuildFromWorkItem(ctx.repoPath, item);
+      if (rehydrated) {
+        ctx.lastBuildResult = rehydrated;
+      }
       return {
         found: true,
         workItem: {
@@ -256,58 +373,69 @@ export function createEngineeringTools(ctx: EngineeringSessionContext) {
     }),
     execute: async (input) => {
       if (!consumeApproval(ctx.approval, "run-build")) {
-        requestApproval(ctx.approval, "run-build");
+        requestApproval(ctx.approval, "run-build", input as Record<string, unknown>);
         return {
           needsApproval: true,
           message: needsApprovalMessage("run-build"),
         };
       }
+      return executeRunBuildCore(input);
+    },
+  });
 
-      const item = getWorkItem(ctx.config.stateDir, input.slug);
-      if (!item?.prdPath || !item.acceptanceTestPath) {
-        throw new Error("Work item missing PRD or acceptance test artifacts.");
+  const reviewBuild = createTool({
+    id: "review-build",
+    description:
+      "Run advisory code review on the last green build (PRD + diff + acceptance test).",
+    inputSchema: z.object({
+      slug: z.string().optional(),
+    }),
+    outputSchema: z.object({
+      message: z.string(),
+      decision: z.string().optional(),
+      findingCount: z.number().optional(),
+    }),
+    execute: async (input) => {
+      const buildResult = tryRehydrateBuildResult(ctx);
+      if (!buildResult || !isBuildGreen(buildResult)) {
+        throw new Error("No green build to review. Run build first.");
       }
 
-      const prdMd = readFileSync(item.prdPath, "utf-8");
-      const acceptanceTestContent = readFileSync(item.acceptanceTestPath, "utf-8");
-      const cursorTaskMd = `Read spec.md in the run folder. Implement only the requested scope from the PRD below. NEVER modify tests/acceptance/agent-build.test.ts. Use the tdd skill for unit tests.\n\n${prdMd}`;
+      const slug = input.slug ?? ctx.currentWorkItem?.slug;
+      if (!slug) {
+        throw new Error("No work item slug for review.");
+      }
+      const item = getWorkItem(ctx.config.stateDir, slug);
+      if (!item?.prdPath || !item.acceptanceTestPath) {
+        throw new Error("Work item missing PRD or acceptance test for review.");
+      }
 
       requireOpenAiKey(ctx.config);
-      requireCursorKey(ctx.config);
+      ctx.telemetry.logAgentInvoked(
+        "code-reviewer",
+        "Code Reviewer",
+        ctx.config.defaultReviewModel,
+      );
 
-      const runLogger = createRunLogger({
-        logDir: ctx.config.logDir,
-        logLevel: ctx.config.logLevel,
-        name: ctx.config.appName,
+      const verdict = await runCodeReview(ctx.codeReviewerAgent, {
+        gitDiff: buildResult.gitDiff,
+        prdMarkdown: readFileSync(item.prdPath, "utf-8"),
+        acceptanceTest: readFileSync(item.acceptanceTestPath, "utf-8"),
+        changedFiles: buildResult.changedFiles,
       });
 
-      const result = await runAgentBuild({
-        request: input.requestSummary ?? item.title,
-        config: ctx.config,
-        repoPath: ctx.repoPath,
-        runId: randomUUID(),
-        runLogger,
-        suppliedSpec: {
-          specMd: prdMd,
-          cursorTaskMd,
-          acceptanceTestRelativePath: DEFAULT_ACCEPTANCE_RELATIVE,
-          acceptanceTestContent,
-        },
-      });
+      ctx.lastReviewVerdict = verdict;
+      ctx.telemetry.logReviewVerdict(
+        verdict.decision,
+        verdict.findings.length,
+      );
 
-      ctx.lastBuildResult = result;
-      ctx.currentWorkItem = upsertWorkItem(ctx.config.stateDir, {
-        ...item,
-        stage: "build",
-        lastRunDir: result.runDir,
-        lastBuildSuccess: result.success,
-      });
-
-      const report = formatBuildChatReport(result);
+      const report = formatReviewVerdictReport(verdict);
+      const buildReport = formatBuildChatReport(buildResult, verdict);
       return {
-        message: `${report.headline}\n\n${report.body}`,
-        success: result.success,
-        runDir: result.runDir,
+        message: `${report}\n\n--- Build summary ---\n${buildReport.headline}\n${buildReport.body}`,
+        decision: verdict.decision,
+        findingCount: verdict.findings.length,
       };
     },
   });
@@ -327,22 +455,10 @@ export function createEngineeringTools(ctx: EngineeringSessionContext) {
     }),
     execute: async (input) => {
       if (!consumeApproval(ctx.approval, "ship-docs")) {
-        requestApproval(ctx.approval, "ship-docs");
+        requestApproval(ctx.approval, "ship-docs", input as Record<string, unknown>);
         return { needsApproval: true, message: needsApprovalMessage("ship-docs") };
       }
-
-      const paths = prdPaths(ctx.config.prdsDir, input.slug);
-      const toShip = [paths.prdPath, paths.grillNotesPath].filter((p) => existsSync(p));
-      if (toShip.length === 0) {
-        throw new Error("No planning docs found to ship.");
-      }
-
-      shipDocs(
-        { repoPath: ctx.repoPath, files: toShip, message: input.commitMessage },
-        ctx.gitRunner,
-      );
-
-      return { message: `Planning docs pushed for ${input.slug}.`, shipped: true };
+      return executeShipDocsCore(input);
     },
   });
 
@@ -360,41 +476,35 @@ export function createEngineeringTools(ctx: EngineeringSessionContext) {
     }),
     execute: async (input) => {
       if (!consumeApproval(ctx.approval, "ship-implementation")) {
-        requestApproval(ctx.approval, "ship-implementation");
+        requestApproval(ctx.approval, "ship-implementation", input as Record<string, unknown>);
         return {
           needsApproval: true,
           message: needsApprovalMessage("ship-implementation"),
         };
       }
-
-      if (!ctx.lastBuildResult || !isBuildGreen(ctx.lastBuildResult)) {
-        throw new Error("Cannot ship implementation: no green build result in session.");
-      }
-
-      const shipped = shipImplementation(
-        {
-          repoPath: ctx.repoPath,
-          worktreePath: ctx.lastBuildResult.worktreePath,
-          buildResult: ctx.lastBuildResult,
-          message: input.commitMessage,
-          operatorConfirmed: true,
-        },
-        ctx.gitRunner,
-      );
-
-      if (ctx.currentWorkItem) {
-        ctx.currentWorkItem = upsertWorkItem(ctx.config.stateDir, {
-          ...ctx.currentWorkItem,
-          stage: "done",
-        });
-      }
-
-      return {
-        message: `Implementation shipped: ${shipped.join(", ")}`,
-        shipped: true,
-      };
+      return executeShipImplementationCore(input);
     },
   });
+
+  async function replayDangerousTool(): Promise<Record<string, unknown>> {
+    const pending = ctx.approval.pending;
+    if (!pending) {
+      throw new Error("No pending dangerous tool to replay.");
+    }
+    const { toolId, args } = pending;
+    grantApproval(ctx.approval, toolId);
+
+    if (toolId === "run-build") {
+      return executeRunBuildCore(args as RunBuildInput);
+    }
+    if (toolId === "ship-docs") {
+      return executeShipDocsCore(args as ShipDocsInput);
+    }
+    if (toolId === "ship-implementation") {
+      return executeShipImplementationCore(args as ShipImplementationInput);
+    }
+    throw new Error(`Unknown dangerous tool: ${toolId}`);
+  }
 
   return {
     saveGrillNotes,
@@ -405,7 +515,9 @@ export function createEngineeringTools(ctx: EngineeringSessionContext) {
     listInProgress,
     resumeWorkItem,
     runBuild,
+    reviewBuild,
     shipDocsTool,
     shipImplementationTool,
+    replayDangerousTool,
   };
 }

@@ -6,6 +6,12 @@ import type { ApprovalState } from "./approvalGate.js";
 import { createApprovalState } from "./approvalGate.js";
 import type { GhRunner } from "./github.js";
 import type { GitRunner } from "./ship.js";
+import { createCodeReviewerAgent } from "../mastra/agents/code-reviewer.js";
+import { createEngineeringTelemetry } from "./engineeringTelemetry.js";
+import { createRunLogger } from "../logging/runLogger.js";
+import type { ReviewVerdict } from "./review.js";
+import type { Agent } from "@mastra/core/agent";
+import type { EngineeringTelemetry } from "./engineeringTelemetry.js";
 
 export type EngineeringSessionContext = {
   config: AppConfig;
@@ -14,6 +20,9 @@ export type EngineeringSessionContext = {
   approval: ApprovalState;
   currentWorkItem: WorkItem | null;
   lastBuildResult: RunAgentBuildResult | null;
+  lastReviewVerdict: ReviewVerdict | null;
+  codeReviewerAgent: Agent;
+  telemetry: EngineeringTelemetry;
   ghRunner: GhRunner;
   gitRunner: GitRunner;
 };
@@ -64,9 +73,19 @@ export function createEngineeringSessionContext(
     githubRepo?: string;
     ghRunner?: GhRunner;
     gitRunner?: GitRunner;
+    codeReviewerAgent?: Agent;
+    telemetry?: EngineeringTelemetry;
   },
 ): EngineeringSessionContext {
   const repoPath = options?.repoPath ?? process.cwd();
+  const runLogger = createRunLogger({
+    logDir: config.logDir,
+    logLevel: config.logLevel,
+    name: config.appName,
+  });
+  const telemetry = options?.telemetry ?? createEngineeringTelemetry(runLogger);
+  telemetry.logRegistryLoaded();
+
   return {
     config,
     repoPath,
@@ -74,6 +93,11 @@ export function createEngineeringSessionContext(
     approval: createApprovalState(),
     currentWorkItem: null,
     lastBuildResult: null,
+    lastReviewVerdict: null,
+    codeReviewerAgent:
+      options?.codeReviewerAgent ??
+      createCodeReviewerAgent(config.defaultReviewModel, repoPath),
+    telemetry,
     ghRunner: options?.ghRunner ?? defaultGhRunner,
     gitRunner: options?.gitRunner ?? createDefaultGitRunner(repoPath),
   };

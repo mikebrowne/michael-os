@@ -6,12 +6,14 @@ import { z } from "zod";
 const defaultConfigSchema = z.object({
   appName: z.string(),
   defaultModel: z.string(),
+  defaultReviewModel: z.string().optional(),
   defaultCodingModel: z.string().optional(),
 });
 
 export type AppConfig = {
   appName: string;
   defaultModel: string;
+  defaultReviewModel: string;
   defaultCodingModel: string;
   vaultPath: string;
   logDir: string;
@@ -60,10 +62,14 @@ export function loadConfig(cwd: string = process.cwd()): AppConfig {
 
   const openaiApiKey = process.env.OPENAI_API_KEY?.trim() || undefined;
   const cursorApiKey = process.env.CURSOR_API_KEY?.trim() || undefined;
+  const reviewModelEnv = process.env.DEFAULT_REVIEW_MODEL?.trim();
 
   return {
     appName: String(merged.appName),
     defaultModel: String(merged.defaultModel),
+    defaultReviewModel: reviewModelEnv
+      ? String(reviewModelEnv)
+      : String(merged.defaultReviewModel ?? merged.defaultModel),
     defaultCodingModel:
       String(merged.defaultCodingModel ?? DEFAULT_CODING_MODEL),
     vaultPath,

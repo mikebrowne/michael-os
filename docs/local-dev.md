@@ -52,15 +52,59 @@ npm run agent:build -- "Your plain English build request"
 
 Artifacts land in gitignored `./ai-runs/`; see [docs/adr/0003-cursor-coding-executor.md](./adr/0003-cursor-coding-executor.md).
 
-## Engineering gateway (Phase 2)
+## Engineering gateway (Phase 2–3)
 
-The **CLI gateway** is the operator entry point for the full engineering loop. Chat with the **Engineering Lead** agent, which drives grill → PRD → tests → build → report → ship via Mastra tools.
+The **CLI gateway** is the operator entry point for the full engineering loop. Chat with the **Engineering Lead** agent, which drives grill → PRD → tests → build → **review (advisory)** → report → ship via Mastra tools.
+
+### Direct gateway (manual start)
 
 ```bash
 npm run gateway
 ```
 
-Requires `OPENAI_API_KEY`. Build and ship steps also require `CURSOR_API_KEY` when you reach handoff.
+### Always-on daemon + chat client (Phase 3)
+
+Start the gateway as a background daemon (persists memory thread in `.mastra/gateway-thread.json`):
+
+```bash
+npm run gateway:daemon
+```
+
+Connect with the thin chat client:
+
+```bash
+npm run chat
+```
+
+Health check (with daemon running):
+
+```bash
+echo health | nc 127.0.0.1 47821
+```
+
+### launchd service (Mac)
+
+1. Copy and edit the plist — replace `REPO_ROOT_PLACEHOLDER` with your repo absolute path:
+
+   ```bash
+   sed "s|REPO_ROOT_PLACEHOLDER|$(pwd)|g" ops/launchd/com.michaelos.gateway.plist > ~/Library/LaunchAgents/com.michaelos.gateway.plist
+   ```
+
+2. Load the service:
+
+   ```bash
+   launchctl load ~/Library/LaunchAgents/com.michaelos.gateway.plist
+   ```
+
+3. Unload:
+
+   ```bash
+   launchctl unload ~/Library/LaunchAgents/com.michaelos.gateway.plist
+   ```
+
+Logs: `./.logs/gateway-daemon.stdout.log` and `gateway-daemon.stderr.log`. The plist contains **no secrets** — the daemon loads `.env` via dotenv at runtime.
+
+Requires `OPENAI_API_KEY`. Build and ship steps also require `CURSOR_API_KEY` when you reach handoff. Optional `DEFAULT_REVIEW_MODEL` overrides the Code Reviewer model tier.
 
 **Gateway commands:**
 

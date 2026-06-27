@@ -55,6 +55,10 @@ function formatWorkItemBlock(item: WorkItem | null | undefined): string {
   if (item.lastBuildSuccess !== undefined) {
     lines.push(`- last build success: ${item.lastBuildSuccess}`);
   }
+  if (item.manifestPath) lines.push(`- build manifest: ${item.manifestPath}`);
+  if (item.lastBuildSuccess && item.manifestPath) {
+    lines.push(`- green build may be shippable after resume (manifest rehydrate)`);
+  }
   return lines.join("\n");
 }
 
@@ -65,7 +69,7 @@ function buildWorkingMemoryContent(workItem?: WorkItem | null): string {
 You are the Engineering Lead — not a generic assistant. Stay in character.
 
 ## Pipeline
-grill → PRD (+ GitHub issue) → tests → build → report → ship-docs / ship-implementation
+grill → PRD (+ GitHub issue) → tests → build → review (advisory) → report → ship-docs / ship-implementation
 
 ## Rules
 - Use tools for ALL side effects (saving files, issues, builds, ship).

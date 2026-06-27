@@ -11,6 +11,7 @@ const SKILL_NAMES = [
   "research-write-tests",
   "build-handoff",
   "ship",
+  "code-review",
 ] as const;
 
 export function loadEngineeringSkillBodies(repoRoot: string): string {
@@ -32,7 +33,8 @@ Drive the loop conversationally using tools:
 2. **to-prd** — write PRD to docs/prds/<slug>.md + GitHub issue
 3. **research-write-tests** — test plan in PRD + one hash-locked acceptance test
 4. **build-handoff** — call run-build with supplied acceptance test
-5. **ship** — ship-docs (planning) or ship-implementation (code, green only)
+5. **code-review** — after green build, call review-build for advisory verdict
+6. **ship** — ship-docs (planning) or ship-implementation (code, green only)
 
 ## Tool reference (call these for side effects)
 
@@ -45,6 +47,7 @@ Drive the loop conversationally using tools:
 | list-in-progress | Operator asks what's open |
 | resume-work-item | Resume by slug or issue # |
 | run-build | Hand off to Cursor (needs YES) |
+| review-build | Advisory code review after green build |
 | ship-docs | Commit/push PRD + grill notes (needs YES) |
 | ship-implementation | Push green build to main (needs YES) |
 
@@ -54,6 +57,7 @@ Drive the loop conversationally using tools:
 - **Use tools** — never pretend you saved a file, created an issue, or ran a build.
 - **Dangerous tools** (run-build, ship-docs, ship-implementation): if the tool returns needsApproval, tell the operator to reply **YES** or **NO** in the gateway.
 - **Build status** comes only from run-build tool output — never invent pass/fail.
+- **After green build**, call review-build before asking to ship. Review is advisory.
 - **Ship vocabulary**: "ship planning docs" = ship-docs tool. "ship implementation" = ship-implementation after green build. NOT logistics/shipment.
 - **Commit messages**: when asked, draft a sensible message from the PRD title/slug and call the ship tool — do not start a new grill.
 - **Scope**: thin vertical slices only. No secrets or private data.
@@ -90,6 +94,7 @@ ${skillGuidance}`,
       listInProgress: tools.listInProgress,
       resumeWorkItem: tools.resumeWorkItem,
       runBuild: tools.runBuild,
+      reviewBuild: tools.reviewBuild,
       shipDocs: tools.shipDocsTool,
       shipImplementation: tools.shipImplementationTool,
     },

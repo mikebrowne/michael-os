@@ -1,0 +1,29 @@
+---
+description: Domain-qualified naming for modules, types, and registries
+alwaysApply: true
+---
+
+# Naming conventions
+
+Domain-qualify every generic container name. Bare generics are banned unless there is provably only one in the whole system (registries are not that case).
+
+## Files
+
+- Use `camelCase` with the **domain noun first**: `agentRegistry.ts`, `skillLoader.ts`, `gatewaySession.ts`.
+- Never: `registry.ts`, `manager.ts`, `handler.ts`, `service.ts`, `context.ts`, `session.ts`, `store.ts`, `loader.ts`, `util.ts`, `helper.ts` without a domain prefix.
+
+## Types
+
+- Use `PascalCase`, domain-qualified: `AgentRegistration`, `AgentRegistry`, `SkillEntry`.
+- Never bare `Registry`, `Entry`, `Record`, `Manager`, `Context` without a domain prefix.
+
+## Registry symmetry
+
+All registries follow `<domain>Registry` + `<Domain>Registration`:
+
+- `agentRegistry` / `AgentRegistration`
+- future: `skillRegistry` / `SkillRegistration`, `jobRegistry` / `JobRecord`
+
+## Already compliant examples
+
+- `gatewaySession.ts`, `agentMemory.ts`, `skillLoader.ts`

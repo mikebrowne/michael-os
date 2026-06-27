@@ -33,6 +33,10 @@ Stable backlog IDs (`BL-NNN`) live in issue titles, e.g. `[BL-004] First end-to-
 | BL-003 | [#1](https://github.com/mikebrowne/michael-os/issues/1) |
 | BL-004 | [#2](https://github.com/mikebrowne/michael-os/issues/2) — **closed** (Phase 2 engineering loop complete) |
 | BL-005 | [#3](https://github.com/mikebrowne/michael-os/issues/3) — **active** (Phase 3 epic) |
+| BL-005a | [#13](https://github.com/mikebrowne/michael-os/issues/13) — registry + Code Reviewer |
+| BL-005b | [#14](https://github.com/mikebrowne/michael-os/issues/14) — always-on gateway |
+| BL-005c | [#15](https://github.com/mikebrowne/michael-os/issues/15) — resume → ship manifest |
+| BL-005d | [#16](https://github.com/mikebrowne/michael-os/issues/16) — naming convention rule |
 | BL-006 | [#4](https://github.com/mikebrowne/michael-os/issues/4) |
 | BL-007 | [#5](https://github.com/mikebrowne/michael-os/issues/5) |
 | BL-008 | [#6](https://github.com/mikebrowne/michael-os/issues/6) |

@@ -1,27 +1,40 @@
-export const DANGEROUS_TOOL_IDS = new Set(["run-build", "ship-docs", "ship-implementation"]);
+export const DANGEROUS_TOOL_IDS = new Set([
+  "run-build",
+  "ship-docs",
+  "ship-implementation",
+]);
 
 export function isDangerousTool(toolId: string): boolean {
   return DANGEROUS_TOOL_IDS.has(toolId);
 }
 
+export type PendingApproval = {
+  toolId: string;
+  args: Record<string, unknown>;
+};
+
 export type ApprovalState = {
   granted: Set<string>;
-  pending?: string;
+  pending?: PendingApproval;
 };
 
 export function createApprovalState(): ApprovalState {
   return { granted: new Set() };
 }
 
-export function requestApproval(state: ApprovalState, toolId: string): void {
+export function requestApproval(
+  state: ApprovalState,
+  toolId: string,
+  args: Record<string, unknown> = {},
+): void {
   if (!isDangerousTool(toolId)) {
     throw new Error(`Tool is not dangerous: ${toolId}`);
   }
-  state.pending = toolId;
+  state.pending = { toolId, args };
 }
 
 export function grantApproval(state: ApprovalState, toolId?: string): boolean {
-  const id = toolId ?? state.pending;
+  const id = toolId ?? state.pending?.toolId;
   if (!id) return false;
   if (!isDangerousTool(id)) return false;
   state.granted.add(id);

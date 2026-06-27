@@ -17,7 +17,9 @@
     "test": "vitest run",
     "demo": "tsx scripts/demo.ts",
     "agent:build": "tsx scripts/agentBuild.ts",
-    "gateway": "tsx scripts/gateway.ts"
+    "gateway": "tsx scripts/gateway.ts",
+    "gateway:daemon": "tsx scripts/gatewayDaemon.ts",
+    "chat": "tsx scripts/chatClient.ts"
   },
   "dependencies": {
     "@cursor/sdk": "^1.0.22",

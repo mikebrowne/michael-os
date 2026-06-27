@@ -186,14 +186,14 @@ To be enforced via `.cursor/rules/naming-conventions.mdc` (always-applied) with 
 
 ## Phase 3 complete when
 
-- [ ] `agentRegistry` lists all department agents with role, kind, and model tier.
-- [ ] Code Reviewer is wired and usable from the gateway, running post-green/pre-ship.
-- [ ] Reviewer verdict (advisory) appears in the D+ report before the ship prompt.
-- [ ] Always-on gateway is documented and runnable as a Mac service.
-- [ ] `resume #N` can ship a prior green build (manifest rehydrate + green/worktree/hash guard).
-- [ ] Every registry agent emits at least `agent.invoked` + an outcome event (JSONL).
-- [ ] Naming convention rule committed and applied to new files.
-- [ ] This north star doc exists and is current.
+- [x] `agentRegistry` lists all department agents with role, kind, and model tier.
+- [x] Code Reviewer is wired and usable from the gateway, running post-green/pre-ship.
+- [x] Reviewer verdict (advisory) appears in the D+ report before the ship prompt.
+- [x] Always-on gateway is documented and runnable as a Mac service.
+- [x] `resume #N` can ship a prior green build (manifest rehydrate + green/worktree/hash guard).
+- [x] Every registry agent emits at least `agent.invoked` + an outcome event (JSONL).
+- [x] Naming convention rule committed and applied to new files.
+- [x] This north star doc exists and is current.
 
 ## Phase 2 hardening backlog (carried in)
 
@@ -205,21 +205,16 @@ To be enforced via `.cursor/rules/naming-conventions.mdc` (always-applied) with 
   via **Cursor/operator**; feature work ships from the worktree via the loop. Slice 3 and the daemon
   are harness changes.
 
-## GitHub artifacts (proposed — not yet created)
+## GitHub artifacts
 
-Refine [#3 (BL-005)](https://github.com/mikebrowne/michael-os/issues/3) into the epic and spawn
-child issues under it. All on milestone **Phase 3 - Engineering department**, label `phase-3`.
+Epic [#3 (BL-005)](https://github.com/mikebrowne/michael-os/issues/3) with child issues:
 
-| Issue | Title | Board column |
-|-------|-------|--------------|
-| #3 (epic) | [BL-005] Seed engineering skills and agent registry | Backlog → In Progress |
-| BL-005a | Agent registry + Code Reviewer agent (post-green review gate) | Ready (Slice 1) |
-| BL-005b | Always-on gateway as a Mac launchd service | Backlog (Slice 2) |
-| BL-005c | Resume hydrates green build for cross-session ship | Backlog (Slice 3) |
-| BL-005d | Naming convention rule for domain-qualified modules | Ready (Slice 0 chore) |
-
-Deferred (already tracked, no new issues): Ponytail (note on #4), multi-route chat (#4),
-PR ship (#5), YAML/data registry (#6), hard approval gating (#1), rich tracing (#8).
+| Issue | Title |
+|-------|-------|
+| [#13](https://github.com/mikebrowne/michael-os/issues/13) | BL-005a — Agent registry + Code Reviewer |
+| [#14](https://github.com/mikebrowne/michael-os/issues/14) | BL-005b — Always-on gateway (launchd) |
+| [#15](https://github.com/mikebrowne/michael-os/issues/15) | BL-005c — Resume → ship manifest |
+| [#16](https://github.com/mikebrowne/michael-os/issues/16) | BL-005d — Naming convention rule |
 
 ## Related
 

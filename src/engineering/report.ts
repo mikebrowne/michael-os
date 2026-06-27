@@ -1,5 +1,7 @@
 import type { RunAgentBuildResult } from "../agentBuild/runAgentBuild.js";
 import { isBuildGreen } from "../agentBuild/runAgentBuild.js";
+import type { ReviewVerdict } from "./review.js";
+import { formatReviewVerdictReport } from "./review.js";
 
 export type ChatReport = {
   headline: string;
@@ -8,7 +10,10 @@ export type ChatReport = {
   success: boolean;
 };
 
-export function formatBuildChatReport(result: RunAgentBuildResult): ChatReport {
+export function formatBuildChatReport(
+  result: RunAgentBuildResult,
+  reviewVerdict?: ReviewVerdict | null,
+): ChatReport {
   const success = isBuildGreen(result);
   const status = success ? "SUCCESS" : "FAILED";
   const headline = `Build ${status}: ${result.request.slice(0, 80)}`;
@@ -27,6 +32,11 @@ export function formatBuildChatReport(result: RunAgentBuildResult): ChatReport {
   if (success) {
     const diffPreview = result.gitDiff.split("\n").slice(0, 40).join("\n");
     lines.push("", "Diff preview (first 40 lines):", diffPreview || "(empty)");
+    if (reviewVerdict) {
+      lines.push("", "--- Code review (advisory) ---", formatReviewVerdictReport(reviewVerdict));
+    } else {
+      lines.push("", "Next: call review-build for advisory code review before ship.");
+    }
     lines.push("", 'Say "yes" to push implementation to main, or "show diff" for the full patch.');
   } else {
     lines.push("", "Failure details:");

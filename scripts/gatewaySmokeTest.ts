@@ -48,8 +48,10 @@ async function generate(
   const text = response.text ?? "(no response)";
 
   if (ctx.approval.pending) {
-    console.log(`\n--- approval required: ${needsApprovalMessage(ctx.approval.pending)} ---`);
-    if (ctx.approval.pending === "run-build") {
+    console.log(
+      `\n--- approval required: ${needsApprovalMessage(ctx.approval.pending.toolId)} ---`,
+    );
+    if (ctx.approval.pending.toolId === "run-build") {
       requireCursorKey(ctx.config);
       grantApproval(ctx.approval, "run-build");
       console.log("--- auto-approved run-build (YES) ---\n");
