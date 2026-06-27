@@ -7,7 +7,7 @@
 - Domain glossary: `CONTEXT.md`
 - Decisions: `docs/adr/0001-mastra-runtime.md`, `docs/adr/0002-public-safe-vault-boundary.md`
 - Vision: `init.md`
-- Backlog: `docs/BACKLOG.md`
+- Backlog: GitHub Issues + [MichaelOS Build project](https://github.com/mikebrowne/michael-os/issues) (see [docs/README.md](../README.md#work-tracking))
 
 ## Mission
 
