@@ -4,8 +4,7 @@ This document captures the **operator-aligned** Phase 3 plan for MichaelOS, synt
 grill session on 2026-06-27. It builds on [Phase 2](./phase-2-engineering-loop.md) (engineering
 loop complete) and refines [BL-005 / issue #3](https://github.com/mikebrowne/michael-os/issues/3).
 
-**Status:** planning / decision-lock. No implementation has started. Slices below are ordered for
-build once the operator says "start building."
+**Status:** **complete** (shipped 2026-06-27). Operator certification: issue [#17](https://github.com/mikebrowne/michael-os/issues/17) (`formatDisplaySlug` utility) — full loop grill → PRD → tests → build → review → ship, plus cross-session `resume #17` → `review-build` without rebuild.
 
 ## North star user story
 

@@ -32,18 +32,18 @@ Stable backlog IDs (`BL-NNN`) live in issue titles, e.g. `[BL-004] First end-to-
 |----|-------|
 | BL-003 | [#1](https://github.com/mikebrowne/michael-os/issues/1) |
 | BL-004 | [#2](https://github.com/mikebrowne/michael-os/issues/2) — **closed** (Phase 2 engineering loop complete) |
-| BL-005 | [#3](https://github.com/mikebrowne/michael-os/issues/3) — **active** (Phase 3 epic) |
-| BL-005a | [#13](https://github.com/mikebrowne/michael-os/issues/13) — registry + Code Reviewer |
-| BL-005b | [#14](https://github.com/mikebrowne/michael-os/issues/14) — always-on gateway |
-| BL-005c | [#15](https://github.com/mikebrowne/michael-os/issues/15) — resume → ship manifest |
-| BL-005d | [#16](https://github.com/mikebrowne/michael-os/issues/16) — naming convention rule |
+| BL-005 | [#3](https://github.com/mikebrowne/michael-os/issues/3) — **closed** (Phase 3 Engineering Department complete) |
+| BL-005a | [#13](https://github.com/mikebrowne/michael-os/issues/13) — **closed** — registry + Code Reviewer |
+| BL-005b | [#14](https://github.com/mikebrowne/michael-os/issues/14) — **closed** — always-on gateway |
+| BL-005c | [#15](https://github.com/mikebrowne/michael-os/issues/15) — **closed** — resume → ship manifest |
+| BL-005d | [#16](https://github.com/mikebrowne/michael-os/issues/16) — **closed** — naming convention rule |
 | BL-006 | [#4](https://github.com/mikebrowne/michael-os/issues/4) |
 | BL-007 | [#5](https://github.com/mikebrowne/michael-os/issues/5) |
 | BL-008 | [#6](https://github.com/mikebrowne/michael-os/issues/6) |
 | BL-009 | [#7](https://github.com/mikebrowne/michael-os/issues/7) |
 | BL-010 | [#8](https://github.com/mikebrowne/michael-os/issues/8) |
 
-**Next build:** [BL-005 / issue #3](https://github.com/mikebrowne/michael-os/issues/3) — Engineering Department (Phase 3). See [phase-3-engineering-department.md](./phase-3-engineering-department.md).
+**Next build:** [BL-006 / issue #4](https://github.com/mikebrowne/michael-os/issues/4) — Sessions, delegation, and job queue (Phase 4).
 
 ## Key docs
 
