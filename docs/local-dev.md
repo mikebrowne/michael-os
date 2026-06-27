@@ -52,6 +52,27 @@ npm run agent:build -- "Your plain English build request"
 
 Artifacts land in gitignored `./ai-runs/`; see [docs/adr/0003-cursor-coding-executor.md](./adr/0003-cursor-coding-executor.md).
 
+## Engineering gateway (Phase 2)
+
+The **CLI gateway** is the operator entry point for the full engineering loop. Chat with the **Engineering Lead** agent, which drives grill → PRD → tests → build → report → ship via Mastra tools.
+
+```bash
+npm run gateway
+```
+
+Requires `OPENAI_API_KEY`. Build and ship steps also require `CURSOR_API_KEY` when you reach handoff.
+
+**Gateway commands:**
+
+- `exit` / `quit` — leave the session
+- `list` — ask the agent for in-progress work items
+- `resume #N` — resume by GitHub issue number
+- `YES` / `NO` — approve or cancel dangerous tools (`run-build`, `ship-docs`, `ship-implementation`)
+
+Planning artifacts land in `docs/prds/` (configurable via `PRDS_DIR`). Work-item state is stored under `.mastra/state/` (gitignored). Dangerous tools pause for **code-enforced** operator approval before executing.
+
+See [docs/phase-2-engineering-loop.md](./phase-2-engineering-loop.md) for the north star and architecture.
+
 ## Run logs
 
 Structured **Run logs** are JSONL files under `./.logs/` (gitignored). Each run records workflow and demo events.

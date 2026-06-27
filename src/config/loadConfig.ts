@@ -16,6 +16,8 @@ export type AppConfig = {
   vaultPath: string;
   logDir: string;
   aiRunsDir: string;
+  prdsDir: string;
+  stateDir: string;
   logLevel: "debug" | "info" | "warn" | "error";
   openaiApiKey?: string;
   cursorApiKey?: string;
@@ -48,6 +50,8 @@ export function loadConfig(cwd: string = process.cwd()): AppConfig {
 
   const logDir = resolve(cwd, process.env.LOG_DIR?.trim() || ".logs");
   const aiRunsDir = resolve(cwd, process.env.AI_RUNS_DIR?.trim() || "ai-runs");
+  const prdsDir = resolve(cwd, process.env.PRDS_DIR?.trim() || join("docs", "prds"));
+  const stateDir = resolve(cwd, process.env.STATE_DIR?.trim() || join(".mastra", "state"));
 
   const logLevelRaw = (process.env.LOG_LEVEL ?? "info").toLowerCase();
   const logLevel = z
@@ -65,6 +69,8 @@ export function loadConfig(cwd: string = process.cwd()): AppConfig {
     vaultPath,
     logDir,
     aiRunsDir,
+    prdsDir,
+    stateDir,
     logLevel,
     openaiApiKey,
     cursorApiKey,

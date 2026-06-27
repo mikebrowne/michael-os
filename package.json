@@ -16,7 +16,8 @@
     "lint": "eslint .",
     "test": "vitest run",
     "demo": "tsx scripts/demo.ts",
-    "agent:build": "tsx scripts/agentBuild.ts"
+    "agent:build": "tsx scripts/agentBuild.ts",
+    "gateway": "tsx scripts/gateway.ts"
   },
   "dependencies": {
     "@cursor/sdk": "^1.0.22",

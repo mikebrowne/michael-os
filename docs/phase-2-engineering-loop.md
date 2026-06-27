@@ -15,39 +15,29 @@ This is the milestone where **the harness becomes the entry point** and Cursor b
 
 ## Architecture
 
+**Option 2 (agentic):** the operator chats with the **Engineering Lead** Mastra agent via `npm run gateway`. The agent chooses tools conversationally; the build pipeline inside `runAgentBuild()` stays deterministic (RED → Cursor → GREEN+hash → preflight). Dangerous tools (`run-build`, `ship-docs`, `ship-implementation`) require operator YES enforced in code (`approvalGate.ts`), not prompts alone.
+
 ```mermaid
 flowchart TB
-  subgraph operator [Operator]
-    OP[Chat / pasted context]
+  OP[Operator] <--> GW["scripts/gateway.ts — chat REPL"]
+  GW <--> EL["Engineering Lead agent"]
+  GW -.->|"code-enforced YES for dangerous tools"| GATE["approvalGate"]
+  subgraph tools [Mastra tools]
+    T1["save grill / PRD / test artifacts"]
+    T2["github create/update issue"]
+    T3["run-build — runAgentBuild"]
+    T4["ship-docs / ship-implementation"]
   end
-  subgraph gateway [CLI gateway — orchestration front door, long-running]
-    GW[Session daemon + client]
-  end
-  subgraph agent [Engineering Lead — first Mastra agent on the gateway]
-    S1[grill-me-with-docs]
-    S2[to-prd — includes GitHub issue]
-    S3[research + write tests]
-    S4[build / handoff]
-    GW --> S1 --> S2 --> S3 --> S4
-  end
-  subgraph durable [Durable artifacts]
-    GH[GitHub issue / project board]
-    PRD[docs/prds/ — PRDs, grill notes, test plans]
-  end
-  subgraph executor [Executor — shipped BL-004 MVP]
-    AB[agent:build → Cursor SDK]
-    RUN[ai-runs/ + result.md]
-  end
-  OP <--> GW
-  S2 --> GH
-  S2 --> PRD
-  S3 --> PRD
-  S4 --> AB --> RUN --> GW --> OP
+  EL --> tools
+  T3 --> RAB["runAgentBuild → Cursor SDK"] --> RUN["ai-runs/ + result.md"]
+  T1 --> PRD["docs/prds/"]
+  T2 --> GH["GitHub issue"]
+  T4 --> MAIN["push to main"]
 ```
 
-**Already built (executor layer):** `npm run agent:build` — spec generation inside the pipeline, isolated worktree, RED/GREEN gates, preflight, `result.md`. See [ADR 0003](./adr/0003-cursor-coding-executor.md).
+**Executor layer (shipped):** `npm run agent:build` / `runAgentBuild()` — isolated worktree, RED/GREEN gates, preflight, `result.md`. See [ADR 0003](./adr/0003-cursor-coding-executor.md).
 
-**Still to build (orchestration layer):** gateway, Engineering Lead agent, skills, GitHub/issue tools, handoff into `agent:build`, report formatting, ship-to-main on approval.
+**Orchestration layer (Phase 2 — implemented):** `npm run gateway`, Engineering Lead agent, four `skills/*/SKILL.md` files, GitHub/issue tools, supplied-acceptance-test handoff, D+ report from structured build results, ship-to-main on green + YES.
 
 ## Grill session decisions
 
@@ -120,16 +110,16 @@ The issue is the **canonical bookmark** for a paused or multi-session feature. R
 
 ## Phase 2 complete when
 
-- [ ] Operator can start gateway and talk to the **Engineering Lead** (not `npm run agent:build` directly)
-- [ ] Paste-in-chat context works for grill
-- [ ] Skill chain runs with checkpoint approvals, **new thread per step**, deliverables on disk
-- [ ] `to-prd` writes PRD to `docs/prds/` + creates/updates GitHub issue
-- [ ] `research-write-tests` writes test plan + one hash-locked acceptance test
-- [ ] Planning docs can be committed **before** a successful build (separate from code)
-- [ ] Handoff runs `agent:build` and returns D+ report in chat
-- [ ] Push-to-main only on green + explicit YES
-- [ ] Resume works via `resume #N`, feature name, and in-progress list
-- [ ] Documented Phase 3 debt (formal skill platform, multi-agent dept, sessions, PR flow, always-on service)
+- [x] Operator can start gateway and talk to the **Engineering Lead** (not `npm run agent:build` directly)
+- [x] Paste-in-chat context works for grill
+- [x] Skill chain runs with checkpoint approvals, **new thread per step**, deliverables on disk
+- [x] `to-prd` writes PRD to `docs/prds/` + creates/updates GitHub issue
+- [x] `research-write-tests` writes test plan + one hash-locked acceptance test
+- [x] Planning docs can be committed **before** a successful build (separate from code)
+- [x] Handoff runs `agent:build` and returns D+ report in chat
+- [x] Push-to-main only on green + explicit YES
+- [x] Resume works via `resume #N`, feature name, and in-progress list
+- [x] Documented Phase 3 debt (formal skill platform, multi-agent dept, sessions, PR flow, always-on service)
 
 ## Phase 3 debt (document now, deepen later)
 

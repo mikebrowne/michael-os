@@ -2,25 +2,19 @@
 
 MichaelOS skills are **focused instruction files** (Matt Pocock–style) that agents invoke for repeatable judgment work. Code handles deterministic steps; skills handle how to think.
 
-## Phase 2 minimal slice (in progress)
+## Phase 2 skills (Engineering Lead)
 
-Phase 2 completion requires a **minimal skill system** — not the full YAML platform (Phase 6). For v1:
+The **Engineering Lead** loads these from `skills/<name>/SKILL.md` via `src/skills/skillLoader.ts` and embeds them in agent instructions. The operator drives the loop through `npm run gateway`; tools persist deliverables to disk.
 
-- Skills live as `SKILL.md` under `skills/<skill-name>/` (or adjacent to the owning agent).
-- The **Engineering Lead** (first production agent) invokes skills in a checkpointed pipeline — new thread per step, deliverables on disk.
-- Cursor’s inner loop may still use personal skills under `~/.cursor/skills/` (e.g. TDD); repo skills are for **Mastra orchestration**.
-
-### Planned skills (Engineering Lead)
-
-| Skill | Role | Deliverable |
-|-------|------|-------------|
-| `grill-me-with-docs` | Clarify requirements from chat or pasted context | Grill notes in `docs/prds/` |
-| `to-prd` | Produce PRD + GitHub issue | PRD in `docs/prds/`; issue created/updated |
-| `research-write-tests` | Define "done" before build | Test plan in PRD + one hash-locked acceptance test |
-| `build-handoff` | Bundle PRD + acceptance test + issue → `agent:build` / Cursor | Build run + D+ report |
+| Skill | Path | Role | Deliverable |
+|-------|------|------|-------------|
+| `grill-me-with-docs` | [grill-me-with-docs/SKILL.md](./grill-me-with-docs/SKILL.md) | Clarify requirements from chat or pasted context | Grill notes in `docs/prds/<slug>.grill.md` |
+| `to-prd` | [to-prd/SKILL.md](./to-prd/SKILL.md) | Produce PRD + GitHub issue | `docs/prds/<slug>.md`; issue created/updated |
+| `research-write-tests` | [research-write-tests/SKILL.md](./research-write-tests/SKILL.md) | Define "done" before build | Test plan in PRD + one hash-locked acceptance test |
+| `build-handoff` | [build-handoff/SKILL.md](./build-handoff/SKILL.md) | Bundle PRD + acceptance test → `runAgentBuild` | Build run + D+ report in chat |
 
 See [docs/phase-2-engineering-loop.md](../docs/phase-2-engineering-loop.md) for the full north star and grill decisions.
 
 ## Phase 6 (deferred)
 
-YAML format, shared index, progressive loading, permissions, and script-backed skills remain out of scope until the Phase 2 loop is proven.
+YAML format, shared index, progressive loading, permissions, and script-backed skills remain out of scope until the Phase 2 loop is proven in production use.
