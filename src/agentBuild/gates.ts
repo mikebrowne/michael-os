@@ -1,5 +1,6 @@
 import { createHash } from "node:crypto";
 import { readFileSync, writeFileSync } from "node:fs";
+import { chmodSync } from "node:fs";
 import { execSync } from "node:child_process";
 import type { GateResult } from "./types.js";
 
@@ -67,6 +68,14 @@ export type RedGreenGateOutcome = {
   acceptanceHashUnchanged: boolean;
   messages: string[];
 };
+
+export function lockAcceptanceTest(acceptanceTestPath: string): void {
+  chmodSync(acceptanceTestPath, 0o444);
+}
+
+export function unlockAcceptanceTest(acceptanceTestPath: string): void {
+  chmodSync(acceptanceTestPath, 0o644);
+}
 
 export function evaluateRedGreenGates(
   red: GateResult,

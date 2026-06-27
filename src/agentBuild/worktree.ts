@@ -43,16 +43,25 @@ export function removeWorktree(repoPath: string, info: WorktreeInfo): void {
 }
 
 export function captureGitDiff(worktreePath: string): string {
-  return execSync("git diff", { cwd: worktreePath, encoding: "utf-8" });
+  try {
+    execSync("git add -N .", { cwd: worktreePath, stdio: "pipe" });
+  } catch {
+    // no untracked files
+  }
+  const diff = execSync("git diff HEAD", {
+    cwd: worktreePath,
+    encoding: "utf-8",
+  });
+  return diff;
 }
 
 export function listChangedFiles(worktreePath: string): string[] {
-  const out = execSync("git diff --name-only", {
+  const out = execSync("git status --porcelain", {
     cwd: worktreePath,
     encoding: "utf-8",
   });
   return out
     .split("\n")
-    .map((line) => line.trim())
+    .map((line) => line.slice(3).trim())
     .filter(Boolean);
 }

@@ -11,13 +11,15 @@ export function createSpecAgent(model: string): Agent {
 
 Rules:
 - Output ONLY valid JSON matching the required schema. No prose outside JSON.
-- The acceptance test must be a real Vitest test file that imports from the actual codebase.
+- In JSON string values, escape backslashes and quotes correctly (no invalid escape sequences).
+- The acceptance test must use ESM import paths with a .js suffix (e.g. ../../src/utils/hello.js).
 - The acceptance test must FAIL against the current codebase (red gate) before implementation.
 - Do not write tautological tests (expect(true).toBe(true)).
 - Keep scope thin — one vertical slice only.
 - Never include secrets, API keys, or private data.
 - The acceptance test file path must be: tests/acceptance/agent-build.test.ts
-- cursor-task.md content must tell the executor to read spec.md, not modify tests/acceptance/agent-build.test.ts, and stop if blocked.
+- Imports from src/ in the acceptance test must use the ../../src/ prefix (file is two levels below repo root).
+- cursor-task.md content must tell the executor to read spec.md, implement only the requested scope, NEVER open or modify tests/acceptance/agent-build.test.ts (read-only, hash-locked), use the tdd skill for unit tests only, and stop if blocked.
 
 JSON schema:
 {

@@ -5,6 +5,7 @@ import {
   hashFile,
   verifyAcceptanceHash,
 } from "../src/agentBuild/gates.js";
+import { normalizeAcceptanceImports } from "../src/agentBuild/generateSpec.js";
 import { mkdtempSync, writeFileSync, rmSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
@@ -18,6 +19,15 @@ describe("agentBuild runDir", () => {
   it("formats run timestamps", () => {
     const ts = formatRunTimestamp(new Date("2026-06-27T15:04:00"));
     expect(ts).toBe("2026-06-27-1504");
+  });
+});
+
+describe("agentBuild generateSpec", () => {
+  it("normalizes shallow src imports in acceptance tests", () => {
+    const input = `import { greet } from '../src/utils/greet.js';`;
+    expect(normalizeAcceptanceImports(input)).toBe(
+      `import { greet } from '../../src/utils/greet.js';`,
+    );
   });
 });
 
