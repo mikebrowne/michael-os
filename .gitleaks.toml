@@ -1,0 +1,7 @@
+title = "MichaelOS gitleaks config"
+
+[allowlist]
+description = "Public-safe placeholders only"
+paths = [
+  '''\.env\.example$''',
+]

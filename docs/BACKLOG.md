@@ -6,8 +6,6 @@ Stable IDs (`BL-NNN`) are never renumbered. Phase tags follow `init.md` (P0–P1
 
 | ID | Title | Phase | Source | Status |
 |----|-------|-------|--------|--------|
-| BL-001 | Configure GitHub Projects board and link issue templates to it | P0 | PRD michael-os-foundation (story 9) | open |
-| BL-002 | Enable GitHub native secret-scanning push protection on the repo after creation | P0 | ADR 0002; PRD Further Notes | open |
 | BL-003 | Runtime approval gating for dangerous capabilities (shell, deps, deletion, external writes, restarts, secrets) | P4/P5 | PRD; LD-08 | open |
 | BL-004 | First end-to-end engineering loop with an Engineering Lead agent, spec skill, GitHub Issue tool, file tools, and test tool | P2 | init.md Phase 2 | open |
 | BL-005 | Seed engineering skills, skill folder convention, and agent registry | P3 | init.md Phase 3 | open |
@@ -21,3 +19,5 @@ Stable IDs (`BL-NNN`) are never renumbered. Phase tags follow `init.md` (P0–P1
 
 | ID | Title | Phase | Source | Status |
 |----|-------|-------|--------|--------|
+| BL-001 | Configure GitHub Projects board and link issue templates to it | P0 | PRD michael-os-foundation (story 9) | closed |
+| BL-002 | Enable GitHub native secret-scanning push protection on the repo after creation | P0 | ADR 0002; PRD Further Notes | closed |

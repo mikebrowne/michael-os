@@ -27,7 +27,7 @@ body:
     id: version
     attributes:
       label: Environment
-      placeholder: Node 20, OS, commit hash
+      placeholder: Node 22.13+, OS, commit hash
   - type: checkboxes
     id: safety
     attributes:

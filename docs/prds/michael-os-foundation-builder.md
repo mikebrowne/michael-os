@@ -53,7 +53,7 @@ Phase 0:
 
 Phase 1:
 
-5. Scaffold minimal Mastra app — run `npm create mastra` (OpenAI, agents/tools/workflows), trim to one demo agent + one tool + one workflow; pin Node 20 via `engines` and `.nvmrc`. Verify: `npm run dev` starts.
+5. Scaffold minimal Mastra app — run `npm create mastra` (OpenAI, agents/tools/workflows), trim to one demo agent + one tool + one workflow; pin Node 22.13+ via `engines` in `package.json`. Verify: `npm run dev` starts.
 6. Folder structure — establish agents/tools/workflows under the Mastra source plus top-level schemas, scripts, skills, tests, examples, docs with intent READMEs. Verify: structure matches success criterion 9.
 7. Run-logger (test-first) — JSONL logger to the gitignored log directory wrapping the Mastra logger. Verify: unit test asserts emitted records.
 8. Config/env loader — resolves settings from `.env` + default + optional local override; unset `VAULT_PATH` falls back to the Demo vault; missing required values error clearly. Verify: unit coverage of fallback and error paths.

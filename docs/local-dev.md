@@ -4,11 +4,11 @@ MichaelOS runs locally on the operator's machine. This guide covers a clean setu
 
 ## Prerequisites
 
-- Node.js 22.13+ (see `.nvmrc`; required by Mastra 1.x)
+- Node.js 22.13+ (see `engines` in `package.json`; required by Mastra 1.x)
 - npm 10+
 - Git
 
-Optional for GitHub push: [GitHub CLI](https://cli.github.com/) (`gh`) authenticated.
+Optional: [GitHub CLI](https://cli.github.com/) (`gh`) for creating issues or opening PRs from the terminal. The web UI works fine without it.
 
 ## Setup
 
@@ -66,7 +66,7 @@ git remote add origin git@github.com:<your-user>/michael-os.git
 git push -u origin main
 ```
 
-Enable **Secret scanning push protection** in the repository settings (see `docs/BACKLOG.md` BL-002).
+Enable **GitHub push protection** (native secret scanning) per [docs/push-to-github.md](./push-to-github.md). This is separate from the **Gitleaks** job in CI, which scans git history on every push.
 
 ## Private config
 

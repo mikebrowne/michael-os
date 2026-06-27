@@ -11,6 +11,22 @@ GitHub Projects is the kanban for buildable work. Configure it in the GitHub UI 
 5. Link Issues from templates (bug, feature, spec, capability idea) as they are created.
 6. Reference `docs/BACKLOG.md` for deferred cross-phase items (`BL-NNN`).
 
+## Creating issues (no CLI required)
+
+You do **not** need `gh` to track work. Use the GitHub web UI:
+
+1. Open the repo → **Issues** → **New issue**.
+2. Pick a template: **Bug**, **Feature**, **Spec**, or **Capability idea** (defined under `.github/ISSUE_TEMPLATE/`).
+3. Fill in the form and submit.
+4. In the issue sidebar, under **Projects**, add it to **MichaelOS Build** (or rely on auto-add if you enabled that workflow).
+
+`gh` is optional convenience for the same workflow from a terminal, for example:
+
+```bash
+gh issue create --template bug.yml
+gh issue list
+```
+
 ## Key docs
 
 | Doc | Purpose |
