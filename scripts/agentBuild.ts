@@ -16,6 +16,8 @@ import {
   saveAcceptanceHash,
   verifyAcceptanceHash,
   evaluateRedGreenGates,
+  lockAcceptanceTest,
+  unlockAcceptanceTest,
 } from "../src/agentBuild/gates.js";
 import { runPreflight } from "../src/agentBuild/preflight.js";
 import { createCursorExecutor } from "../src/agentBuild/executor.js";
@@ -91,6 +93,8 @@ async function main() {
       join(paths.worktreePath, spec.acceptanceTestRelativePath),
       paths.acceptanceHashPath,
     );
+    const acceptancePath = join(paths.worktreePath, spec.acceptanceTestRelativePath);
+    lockAcceptanceTest(acceptancePath);
 
     console.log("Installing dependencies in worktree...");
     installDependencies(paths.worktreePath);
@@ -106,14 +110,18 @@ async function main() {
 
     console.log("Invoking Cursor executor...");
     const executor = createCursorExecutor(config);
-    cursorResult = await executor.runTask({
-      repoPath: process.cwd(),
-      worktreePath: paths.worktreePath,
-      runDir: paths.runDir,
-      specPath: paths.specPath,
-      promptPath: paths.cursorTaskPath,
-      acceptanceTestPath: join(paths.worktreePath, spec.acceptanceTestRelativePath),
-    });
+    try {
+      cursorResult = await executor.runTask({
+        repoPath: process.cwd(),
+        worktreePath: paths.worktreePath,
+        runDir: paths.runDir,
+        specPath: paths.specPath,
+        promptPath: paths.cursorTaskPath,
+        acceptanceTestPath: acceptancePath,
+      });
+    } finally {
+      unlockAcceptanceTest(acceptancePath);
+    }
     runLogger.log({
       runId,
       event: "agentBuild.cursor",
