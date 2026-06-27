@@ -3,7 +3,7 @@ import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import type { RunAgentBuildResult } from "../agentBuild/runAgentBuild.js";
 import type { WorkItem } from "./workItem.js";
-import { evaluateRedGreenGates } from "../agentBuild/gates.js";
+import { evaluateRedGreenGates, hashFile } from "../agentBuild/gates.js";
 
 export type BuildManifest = {
   runId: string;
@@ -39,12 +39,12 @@ export function readBuildManifest(manifestPath: string): BuildManifest {
 }
 
 export function hashAcceptanceTestContent(content: string): string {
-  return createHash("sha256").update(content.trim()).digest("hex");
+  return createHash("sha256").update(content).digest("hex");
 }
 
 export function hashAcceptanceTestFile(filePath: string): string | null {
   if (!existsSync(filePath)) return null;
-  return hashAcceptanceTestContent(readFileSync(filePath, "utf-8"));
+  return hashFile(filePath);
 }
 
 export type ManifestShipGuardResult =

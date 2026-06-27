@@ -4,10 +4,12 @@ import { join } from "node:path";
 import { tmpdir } from "node:os";
 import {
   canShipFromManifest,
-  hashAcceptanceTestContent,
+  rehydrateBuildFromWorkItem,
   writeBuildManifest,
   type BuildManifest,
 } from "../src/engineering/buildManifest.js";
+import { hashFile } from "../src/agentBuild/gates.js";
+import type { WorkItem } from "../src/engineering/workItem.js";
 
 function sampleManifest(overrides: Partial<BuildManifest> = {}): BuildManifest {
   return {
@@ -54,7 +56,7 @@ describe("buildManifest", () => {
       mkdirSync(join(wt, "tests", "acceptance"), { recursive: true });
       const content = "export const x = 1;\n";
       writeFileSync(acceptancePath, content, "utf-8");
-      const hash = hashAcceptanceTestContent(content);
+      const hash = hashFile(acceptancePath);
       const manifest = sampleManifest({
         worktreePath: wt,
         acceptanceHash: hash,
@@ -62,6 +64,48 @@ describe("buildManifest", () => {
       });
       const result = canShipFromManifest(dir, manifest);
       expect(result.ok).toBe(true);
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it("rehydrates green build when manifest hash matches gates hashFile", () => {
+    const dir = mkdtempSync(join(tmpdir(), "michael-os-manifest-rehydrate-"));
+    try {
+      const runDir = join(dir, "run");
+      const wt = join(runDir, "worktree");
+      const acceptanceRel = "tests/acceptance/agent-build.test.ts";
+      const acceptancePath = join(wt, acceptanceRel);
+      mkdirSync(join(wt, "tests", "acceptance"), { recursive: true });
+      writeFileSync(acceptancePath, "test('x', () => {});\n", "utf-8");
+      const hash = hashFile(acceptancePath);
+      const manifestPath = writeBuildManifest(runDir, {
+        runId: "run-rehydrate",
+        worktreePath: wt,
+        success: true,
+        acceptanceHash: hash,
+        acceptanceRelativePath: acceptanceRel,
+        baseCommit: "abc",
+        changedFiles: [],
+        createdAt: new Date().toISOString(),
+        request: "test",
+        runDir,
+      });
+      const item: WorkItem = {
+        id: "test-item",
+        slug: "test-item",
+        title: "Test",
+        stage: "build",
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        lastBuildSuccess: true,
+        manifestPath,
+        acceptanceHash: hash,
+      };
+      const result = rehydrateBuildFromWorkItem(dir, item);
+      expect(result).not.toBeNull();
+      expect(result?.success).toBe(true);
+      expect(result?.runId).toBe("run-rehydrate");
     } finally {
       rmSync(dir, { recursive: true, force: true });
     }

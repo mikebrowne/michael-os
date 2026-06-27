@@ -11,6 +11,7 @@ import {
   parseYesNo,
 } from "../engineering/approvalGate.js";
 import { getWorkItemByIssue } from "../engineering/workItem.js";
+import { rehydrateBuildFromWorkItem } from "../engineering/buildManifest.js";
 import { createEngineeringTools } from "../mastra/tools/engineering/index.js";
 import type { AppConfig } from "../config/loadConfig.js";
 
@@ -105,6 +106,10 @@ export async function processGatewayLine(
     const item = getWorkItemByIssue(runtime.config.stateDir, issueNumber);
     if (item) {
       runtime.ctx.currentWorkItem = item;
+      const rehydrated = rehydrateBuildFromWorkItem(runtime.ctx.repoPath, item);
+      if (rehydrated) {
+        runtime.ctx.lastBuildResult = rehydrated;
+      }
       await refreshGatewayWorkingMemory(
         runtime.memory,
         runtime.memorySession,
