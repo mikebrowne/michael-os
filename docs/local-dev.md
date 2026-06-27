@@ -69,7 +69,7 @@ Requires `OPENAI_API_KEY`. Build and ship steps also require `CURSOR_API_KEY` wh
 - `resume #N` — resume by GitHub issue number
 - `YES` / `NO` — approve or cancel dangerous tools (`run-build`, `ship-docs`, `ship-implementation`)
 
-Planning artifacts land in `docs/prds/` (configurable via `PRDS_DIR`). Work-item state is stored under `.mastra/state/` (gitignored). Conversation memory is stored in `.mastra/memory.db` (gitignored) — each gateway session gets a thread so multi-turn chat works within a session.
+Planning artifacts land in `docs/prds/` (configurable via `PRDS_DIR`). Work-item state is stored under `.mastra/state/` (gitignored). Conversation memory is stored in `.mastra/memory.db` (gitignored) — see [ADR 0006](./adr/0006-gateway-session-memory.md). Dangerous tools pause for **code-enforced** operator approval before executing.
 
 See [docs/phase-2-engineering-loop.md](./phase-2-engineering-loop.md) for the north star and architecture.
 

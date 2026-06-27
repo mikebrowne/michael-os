@@ -15,7 +15,7 @@ This is the milestone where **the harness becomes the entry point** and Cursor b
 
 ## Architecture
 
-**Option 2 (agentic):** the operator chats with the **Engineering Lead** Mastra agent via `npm run gateway`. The agent chooses tools conversationally; the build pipeline inside `runAgentBuild()` stays deterministic (RED → Cursor → GREEN+hash → preflight). Dangerous tools (`run-build`, `ship-docs`, `ship-implementation`) require operator YES enforced in code (`approvalGate.ts`), not prompts alone.
+**Option 2 (agentic):** the operator chats with the **Engineering Lead** Mastra agent via `npm run gateway`. The agent chooses tools conversationally; the build pipeline inside `runAgentBuild()` stays deterministic (RED → Cursor → GREEN+hash → preflight). Dangerous tools (`run-build`, `ship-docs`, `ship-implementation`) require operator YES enforced in code (`approvalGate.ts`), not prompts alone. See [ADR 0005](./adr/0005-agentic-orchestration-layer.md).
 
 ```mermaid
 flowchart TB
@@ -37,7 +37,7 @@ flowchart TB
 
 **Executor layer (shipped):** `npm run agent:build` / `runAgentBuild()` — isolated worktree, RED/GREEN gates, preflight, `result.md`. See [ADR 0003](./adr/0003-cursor-coding-executor.md).
 
-**Orchestration layer (Phase 2 — implemented):** `npm run gateway`, Engineering Lead agent, four `skills/*/SKILL.md` files, GitHub/issue tools, supplied-acceptance-test handoff, D+ report from structured build results, ship-to-main on green + YES.
+**Orchestration layer (Phase 2 — implemented):** `npm run gateway`, Engineering Lead agent, four `skills/*/SKILL.md` files, GitHub/issue tools, supplied-acceptance-test handoff, D+ report from structured build results, ship-to-main on green + YES. See [ADR 0005](./adr/0005-agentic-orchestration-layer.md) and [ADR 0006](./adr/0006-gateway-session-memory.md).
 
 ## Grill session decisions
 
@@ -135,6 +135,8 @@ The issue is the **canonical bookmark** for a paused or multi-session feature. R
 
 ## Related
 
-- [BL-004 / issue #2](https://github.com/mikebrowne/michael-os/issues/2)
+- [BL-004 / issue #2](https://github.com/mikebrowne/michael-os/issues/2) (closed — Phase 2 complete)
 - [ADR 0003 — Cursor coding executor](./adr/0003-cursor-coding-executor.md)
+- [ADR 0005 — Agentic orchestration layer](./adr/0005-agentic-orchestration-layer.md)
+- [ADR 0006 — Gateway session memory](./adr/0006-gateway-session-memory.md)
 - [init.md Phase 2](../init.md) — original user stories (partially superseded by this doc for orchestration shape)

@@ -31,21 +31,22 @@ Stable backlog IDs (`BL-NNN`) live in issue titles, e.g. `[BL-004] First end-to-
 | ID | Issue |
 |----|-------|
 | BL-003 | [#1](https://github.com/mikebrowne/michael-os/issues/1) |
-| BL-004 | [#2](https://github.com/mikebrowne/michael-os/issues/2) — **in progress** (executor MVP done; orchestration slice open) |
-| BL-005 | [#3](https://github.com/mikebrowne/michael-os/issues/3) |
+| BL-004 | [#2](https://github.com/mikebrowne/michael-os/issues/2) — **closed** (Phase 2 engineering loop complete) |
+| BL-005 | [#3](https://github.com/mikebrowne/michael-os/issues/3) — **active** (Phase 3 epic) |
 | BL-006 | [#4](https://github.com/mikebrowne/michael-os/issues/4) |
 | BL-007 | [#5](https://github.com/mikebrowne/michael-os/issues/5) |
 | BL-008 | [#6](https://github.com/mikebrowne/michael-os/issues/6) |
 | BL-009 | [#7](https://github.com/mikebrowne/michael-os/issues/7) |
 | BL-010 | [#8](https://github.com/mikebrowne/michael-os/issues/8) |
 
-**Next build:** [BL-004 / issue #2](https://github.com/mikebrowne/michael-os/issues/2) — engineering delegation agent + skill pipeline. See [phase-2-engineering-loop.md](./phase-2-engineering-loop.md).
+**Next build:** [BL-005 / issue #3](https://github.com/mikebrowne/michael-os/issues/3) — Engineering Department (Phase 3). See [phase-3-engineering-department.md](./phase-3-engineering-department.md).
 
 ## Key docs
 
 | Doc | Purpose |
 |-----|---------|
 | [phase-2-engineering-loop.md](./phase-2-engineering-loop.md) | Phase 2 north star, grill decisions, delivery slices |
+| [phase-3-engineering-department.md](./phase-3-engineering-department.md) | Phase 3 north star, department roster, delivery slices |
 | [CONTEXT.md](../CONTEXT.md) | Domain glossary |
 | [AGENTS.md](../AGENTS.md) | Operating rules for humans and agents |
 | [init.md](../init.md) | Full build plan (Phases 0–14) |
@@ -92,3 +93,6 @@ gh issue list
 - [0001 — Mastra runtime](./adr/0001-mastra-runtime.md)
 - [0002 — Public-safe Vault boundary](./adr/0002-public-safe-vault-boundary.md)
 - [0003 — Cursor coding executor](./adr/0003-cursor-coding-executor.md)
+- [0004 — Engineering Department structure](./adr/0004-engineering-department-structure.md)
+- [0005 — Agentic orchestration layer](./adr/0005-agentic-orchestration-layer.md)
+- [0006 — Gateway session memory](./adr/0006-gateway-session-memory.md)
