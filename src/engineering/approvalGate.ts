@@ -2,6 +2,10 @@ export const DANGEROUS_TOOL_IDS = new Set([
   "run-build",
   "ship-docs",
   "ship-implementation",
+  "stage-implementation",
+  "promote",
+  "rollback",
+  "restart",
 ]);
 
 export function isDangerousTool(toolId: string): boolean {

@@ -2,6 +2,7 @@ import type { RunAgentBuildResult } from "../agentBuild/runAgentBuild.js";
 import { isBuildGreen } from "../agentBuild/runAgentBuild.js";
 import { join, dirname } from "node:path";
 import { copyFileSync, mkdirSync } from "node:fs";
+import { rejectDirectShipImplementation } from "./staging.js";
 
 export type GitRunner = (args: string[]) => { stdout: string; stderr: string; exitCode: number };
 
@@ -86,24 +87,8 @@ export function shipDocs(input: ShipDocsInput, runner: GitRunner): void {
 }
 
 export function shipImplementation(
-  input: ShipImplementationInput,
-  runner: GitRunner,
+  _input: ShipImplementationInput,
+  _runner: GitRunner,
 ): string[] {
-  assertBuildGreenForShip(input.buildResult, input.operatorConfirmed);
-
-  const files = filterImplementationFiles(input.buildResult.changedFiles);
-  copyImplementationFiles(input.worktreePath, input.repoPath, files);
-
-  const cmds = buildShipFromWorktreeCommands(
-    input.repoPath,
-    files,
-    input.message,
-  );
-  for (const cmd of cmds) {
-    const result = runner(cmd);
-    if (result.exitCode !== 0) {
-      throw new Error(result.stderr || result.stdout || `git failed: ${cmd.join(" ")}`);
-    }
-  }
-  return filterImplementationFiles(input.buildResult.changedFiles);
+  rejectDirectShipImplementation();
 }

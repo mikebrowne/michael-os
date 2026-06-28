@@ -18,6 +18,8 @@ import { createObservabilityConfig } from "../observability/observabilityConfig.
 import type { JobRegistry } from "./jobRegistry.js";
 import { createJobRegistry } from "./jobRegistry.js";
 import type { JobRunner } from "./jobRunner.js";
+import type { PromotionRegistry } from "./promotionRegistry.js";
+import { createPromotionRegistry } from "./promotionRegistry.js";
 
 export type EngineeringSessionContext = {
   config: AppConfig;
@@ -32,6 +34,7 @@ export type EngineeringSessionContext = {
   observability: ObservabilityStore;
   jobRegistry: JobRegistry;
   jobRunner?: JobRunner;
+  promotionRegistry: PromotionRegistry;
   ghRunner: GhRunner;
   gitRunner: GitRunner;
 };
@@ -87,6 +90,7 @@ export function createEngineeringSessionContext(
     observability?: ObservabilityStore;
     jobRegistry?: JobRegistry;
     jobRunner?: JobRunner;
+    promotionRegistry?: PromotionRegistry;
   },
 ): EngineeringSessionContext {
   const repoPath = options?.repoPath ?? process.cwd();
@@ -121,6 +125,8 @@ export function createEngineeringSessionContext(
     observability,
     jobRegistry: options?.jobRegistry ?? createJobRegistry(config.mastraDir),
     jobRunner: options?.jobRunner,
+    promotionRegistry:
+      options?.promotionRegistry ?? createPromotionRegistry(config.mastraDir),
     ghRunner: options?.ghRunner ?? defaultGhRunner,
     gitRunner: options?.gitRunner ?? createDefaultGitRunner(repoPath),
   };

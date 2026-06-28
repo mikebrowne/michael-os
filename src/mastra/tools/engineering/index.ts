@@ -21,6 +21,7 @@ import {
   grantApproval,
 } from "../../../engineering/approvalGate.js";
 import { shipDocs, shipImplementation } from "../../../engineering/ship.js";
+import { stageBuild, promoteStagedChange } from "../../../engineering/staging.js";
 import { requireOpenAiKey, requireCursorKey } from "../../../config/loadConfig.js";
 import { createRunLogger } from "../../../logging/runLogger.js";
 import { randomUUID } from "node:crypto";
@@ -38,6 +39,8 @@ const DEFAULT_ACCEPTANCE_RELATIVE = "tests/acceptance/agent-build.test.ts";
 type RunBuildInput = { slug: string; requestSummary?: string };
 type ShipDocsInput = { slug: string; commitMessage: string };
 type ShipImplementationInput = { commitMessage: string };
+type StageImplementationInput = { commitMessage: string; prBody?: string };
+type PromoteInput = { commitMessage: string };
 
 export function createEngineeringTools(ctx: EngineeringSessionContext) {
   async function executeRunBuildCore(input: RunBuildInput) {
@@ -104,6 +107,105 @@ export function createEngineeringTools(ctx: EngineeringSessionContext) {
     );
 
     return { message: `Planning docs pushed for ${input.slug}.`, shipped: true };
+  }
+
+  async function executeStageImplementationCore(input: StageImplementationInput) {
+    const buildResult = tryRehydrateBuildResult(ctx);
+    if (!buildResult || !isBuildGreen(buildResult)) {
+      throw new Error(
+        "Cannot stage implementation: no green build result in session. Rebuild if worktree expired.",
+      );
+    }
+    ctx.lastBuildResult = buildResult;
+
+    const item = ctx.currentWorkItem;
+    if (!item) {
+      throw new Error("No current work item to stage.");
+    }
+
+    const prBody =
+      input.prBody ??
+      [
+        item.prdPath ? `PRD: ${item.prdPath}` : "",
+        item.acceptanceTestPath
+          ? `Acceptance test: ${item.acceptanceTestPath}`
+          : "",
+        "Verification: pending",
+      ]
+        .filter(Boolean)
+        .join("\n\n");
+
+    const staged = await stageBuild(
+      {
+        repoPath: ctx.repoPath,
+        worktreePath: buildResult.worktreePath,
+        slug: item.slug,
+        runId: buildResult.runId,
+        title: item.title,
+        prBody,
+        commitMessage: input.commitMessage,
+        changedFiles: buildResult.changedFiles,
+        githubRepo: ctx.githubRepo,
+      },
+      ctx.gitRunner,
+      ctx.ghRunner,
+    );
+
+    ctx.currentWorkItem = upsertWorkItem(ctx.config.stateDir, {
+      ...item,
+      stage: "ship",
+      lastBuildSuccess: true,
+      stagedBranchName: staged.branchName,
+      stagedPrNumber: staged.prNumber,
+    });
+
+    return {
+      message: `Staged as PR #${staged.prNumber} on branch ${staged.branchName}. Files: ${staged.stagedFiles.join(", ")}`,
+      staged: true,
+      prNumber: staged.prNumber,
+      branchName: staged.branchName,
+    };
+  }
+
+  async function executePromoteCore(input: PromoteInput) {
+    const buildResult = tryRehydrateBuildResult(ctx);
+    const item = ctx.currentWorkItem;
+    if (!buildResult || !item) {
+      throw new Error("Cannot promote: missing green build or work item.");
+    }
+
+    if (!item.stagedBranchName || item.stagedPrNumber == null) {
+      throw new Error("Cannot promote: work item has no staged PR. Run stage-implementation first.");
+    }
+
+    const promotion = await promoteStagedChange(
+      {
+        repoPath: ctx.repoPath,
+        githubRepo: ctx.githubRepo,
+        branchName: item.stagedBranchName,
+        prNumber: item.stagedPrNumber,
+        parentWorkItem: item.slug,
+        issueNumber: item.issueNumber,
+        commitMessage: input.commitMessage,
+      },
+      ctx.gitRunner,
+      ctx.ghRunner,
+      ctx.promotionRegistry,
+    );
+
+    ctx.currentWorkItem = upsertWorkItem(ctx.config.stateDir, {
+      ...item,
+      stage: "done",
+    });
+
+    ctx.telemetry.logShipDecision(true, "promote");
+
+    return {
+      message: `Promoted as #${promotion.promotionNumber} (commit ${promotion.commitSha.slice(0, 8)})`,
+      promoted: true,
+      promotionNumber: promotion.promotionNumber,
+      commitSha: promotion.commitSha,
+    };
   }
 
   async function executeShipImplementationCore(input: ShipImplementationInput) {
@@ -503,7 +605,7 @@ export function createEngineeringTools(ctx: EngineeringSessionContext) {
   const shipImplementationTool = createTool({
     id: "ship-implementation",
     description:
-      "Push green build implementation from worktree to main. Requires green build and operator approval.",
+      "Deprecated: use stage-implementation then promote. Direct push to main is blocked.",
     inputSchema: z.object({
       commitMessage: z.string(),
     }),
@@ -524,6 +626,59 @@ export function createEngineeringTools(ctx: EngineeringSessionContext) {
     },
   });
 
+  const stageImplementationTool = createTool({
+    id: "stage-implementation",
+    description:
+      "Stage green build as a feature branch + draft PR. Requires green build and operator approval.",
+    inputSchema: z.object({
+      commitMessage: z.string(),
+      prBody: z.string().optional(),
+    }),
+    outputSchema: z.object({
+      needsApproval: z.boolean().optional(),
+      message: z.string(),
+      staged: z.boolean().optional(),
+      prNumber: z.number().optional(),
+      branchName: z.string().optional(),
+    }),
+    execute: async (input) => {
+      if (!consumeApproval(ctx.approval, "stage-implementation")) {
+        requestApproval(ctx.approval, "stage-implementation", input as Record<string, unknown>);
+        return {
+          needsApproval: true,
+          message: needsApprovalMessage("stage-implementation"),
+        };
+      }
+      return executeStageImplementationCore(input);
+    },
+  });
+
+  const promoteTool = createTool({
+    id: "promote",
+    description:
+      "Promote a staged PR to main after verification and operator approval.",
+    inputSchema: z.object({
+      commitMessage: z.string(),
+    }),
+    outputSchema: z.object({
+      needsApproval: z.boolean().optional(),
+      message: z.string(),
+      promoted: z.boolean().optional(),
+      promotionNumber: z.number().optional(),
+      commitSha: z.string().optional(),
+    }),
+    execute: async (input) => {
+      if (!consumeApproval(ctx.approval, "promote")) {
+        requestApproval(ctx.approval, "promote", input as Record<string, unknown>);
+        return {
+          needsApproval: true,
+          message: needsApprovalMessage("promote"),
+        };
+      }
+      return executePromoteCore(input);
+    },
+  });
+
   async function replayDangerousTool(): Promise<Record<string, unknown>> {
     const pending = ctx.approval.pending;
     if (!pending) {
@@ -541,6 +696,12 @@ export function createEngineeringTools(ctx: EngineeringSessionContext) {
     if (toolId === "ship-implementation") {
       return executeShipImplementationCore(args as ShipImplementationInput);
     }
+    if (toolId === "stage-implementation") {
+      return executeStageImplementationCore(args as StageImplementationInput);
+    }
+    if (toolId === "promote") {
+      return executePromoteCore(args as PromoteInput);
+    }
     throw new Error(`Unknown dangerous tool: ${toolId}`);
   }
 
@@ -556,6 +717,8 @@ export function createEngineeringTools(ctx: EngineeringSessionContext) {
     reviewBuild,
     shipDocsTool,
     shipImplementationTool,
+    stageImplementationTool,
+    promoteTool,
     replayDangerousTool,
   };
 }

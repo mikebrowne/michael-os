@@ -7,6 +7,10 @@ export const MANAGEMENT_TOOL_IDS = new Set([
   "run-build",
   "ship-docs",
   "ship-implementation",
+  "stage-implementation",
+  "promote",
+  "rollback",
+  "restart",
 ]);
 
 export function isManagementTool(toolId: string): boolean {

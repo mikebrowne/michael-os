@@ -30,6 +30,8 @@ export type WorkItem = {
   lastBuildSuccess?: boolean;
   manifestPath?: string;
   acceptanceHash?: string;
+  stagedBranchName?: string;
+  stagedPrNumber?: number;
   createdAt: string;
   updatedAt: string;
 };

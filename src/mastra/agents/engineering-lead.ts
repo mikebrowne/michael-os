@@ -96,6 +96,8 @@ export function createEngineeringLeadAgent(
       reviewBuild: tools.reviewBuild,
       shipDocs: tools.shipDocsTool,
       shipImplementation: tools.shipImplementationTool,
+      stageImplementation: tools.stageImplementationTool,
+      promote: tools.promoteTool,
     },
     "management",
   );

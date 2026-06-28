@@ -45,6 +45,8 @@ export const AGENT_REGISTRY: AgentRegistration[] = [
       "review-build",
       "ship-docs",
       "ship-implementation",
+      "stage-implementation",
+      "promote",
     ],
   },
   {
