@@ -29,7 +29,7 @@ import {
   formatBuildVerificationReport,
   canPromoteWithVerdict,
   assertAllGatesPresent,
-  REQUIRED_SLICE2_GATES,
+  REQUIRED_FULL_GATES,
 } from "../../../engineering/buildVerification.js";
 import { runBuildVerification } from "../../../engineering/buildVerificationRunner.js";
 import {
@@ -366,8 +366,11 @@ export function createEngineeringTools(ctx: EngineeringSessionContext) {
           changedFiles: buildResult.changedFiles,
         },
         agent: ctx.qaEngineerAgent,
+        prNumber: item.stagedPrNumber,
+        githubRepo: ctx.githubRepo,
+        ghRunner: ctx.ghRunner,
       });
-      assertAllGatesPresent(verdict, REQUIRED_SLICE2_GATES);
+      assertAllGatesPresent(verdict, REQUIRED_FULL_GATES);
       return verdict;
     };
 

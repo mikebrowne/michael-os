@@ -73,3 +73,10 @@ export function assertAllGatesPresent(
 }
 
 export const REQUIRED_SLICE2_GATES: GateKind[] = ["ci", "code-review"];
+export const REQUIRED_FULL_GATES: GateKind[] = [
+  "ci",
+  "permission-scan",
+  "code-review",
+  "security-review",
+  "remote-ci",
+];

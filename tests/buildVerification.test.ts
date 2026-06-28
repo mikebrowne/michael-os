@@ -7,10 +7,13 @@ import {
   assertAllGatesPresent,
   canPromoteWithVerdict,
   REQUIRED_SLICE2_GATES,
+  REQUIRED_FULL_GATES,
 } from "../src/engineering/buildVerification.js";
 import {
   runBuildVerification,
   runCodeReviewGate,
+  runSecurityReviewGate,
+  runPermissionScanGate,
 } from "../src/engineering/buildVerificationRunner.js";
 import type { Agent } from "@mastra/core/agent";
 
@@ -79,6 +82,24 @@ describe("buildVerification", () => {
         },
       });
 
+      const securityGate = await runSecurityReviewGate({
+        worktreePath: dir,
+        codeReviewInput: {
+          gitDiff: "",
+          prdMarkdown: "# PRD",
+          acceptanceTest: "test('x',()=>{})",
+          changedFiles: [],
+        },
+        agent,
+        securityVerdict: {
+          decision: "approve",
+          rationale: "controlled",
+          findings: [],
+        },
+      });
+
+      const permissionGate = runPermissionScanGate("");
+
       const verdict = await runBuildVerification({
         worktreePath: dir,
         codeReviewInput: {
@@ -93,12 +114,22 @@ describe("buildVerification", () => {
           rationale: "controlled",
           findings: [],
         },
+        securityVerdict: {
+          decision: "approve",
+          rationale: "controlled",
+          findings: [],
+        },
       });
 
       expect(codeReviewGate.kind).toBe("code-review");
-      assertAllGatesPresent(verdict, REQUIRED_SLICE2_GATES);
+      expect(securityGate.kind).toBe("security-review");
+      expect(permissionGate.kind).toBe("permission-scan");
+      assertAllGatesPresent(verdict, REQUIRED_FULL_GATES);
       expect(verdict.gates[0]?.kind).toBe("ci");
-      expect(verdict.gates[1]?.kind).toBe("code-review");
+      expect(verdict.gates[1]?.kind).toBe("permission-scan");
+      expect(verdict.gates[2]?.kind).toBe("code-review");
+      expect(verdict.gates[3]?.kind).toBe("security-review");
+      expect(verdict.gates[4]?.kind).toBe("remote-ci");
     } finally {
       rmSync(dir, { recursive: true, force: true });
     }

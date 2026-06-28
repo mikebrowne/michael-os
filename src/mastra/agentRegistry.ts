@@ -71,7 +71,7 @@ export const AGENT_REGISTRY: AgentRegistration[] = [
     model: "reasoning-tier",
     directChat: false,
     standalone: true,
-    skills: ["code-review"],
+    skills: ["code-review", "security-review"],
     tools: ["review-build"],
   },
   {

@@ -68,7 +68,35 @@ export async function runCodeReview(
   agent: Agent,
   input: CodeReviewInput,
 ): Promise<ReviewVerdict> {
-  const prompt = buildCodeReviewPrompt(input);
+  return runReviewWithPrompt(agent, input, buildCodeReviewPrompt(input));
+}
+
+export function buildSecurityReviewPrompt(input: CodeReviewInput): string {
+  return `Security review this staged change.
+
+## Changed files
+${input.changedFiles.join(", ") || "(none)"}
+
+## Git diff
+\`\`\`diff
+${input.gitDiff.slice(0, 12000)}
+\`\`\`
+
+Return the structured security review verdict.`;
+}
+
+export async function runSecurityReview(
+  agent: Agent,
+  input: CodeReviewInput,
+): Promise<ReviewVerdict> {
+  return runReviewWithPrompt(agent, input, buildSecurityReviewPrompt(input));
+}
+
+async function runReviewWithPrompt(
+  agent: Agent,
+  input: CodeReviewInput,
+  prompt: string,
+): Promise<ReviewVerdict> {
 
   const response = await agent.generate(prompt, {
     structuredOutput: {

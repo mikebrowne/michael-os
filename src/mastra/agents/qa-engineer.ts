@@ -28,11 +28,16 @@ export function loadCodeReviewSkillBody(repoRoot: string): string {
   return `## Skill: ${skill.name}\n\n${skill.description}\n\n${skill.body}`;
 }
 
+export function loadSecurityReviewSkillBody(repoRoot: string): string {
+  const skill = loadSkillFile(join(repoRoot, "skills", "security-review", "SKILL.md"));
+  return `## Skill: ${skill.name}\n\n${skill.description}\n\n${skill.body}`;
+}
+
 export function createQaEngineerAgent(
   model: string,
   repoRoot: string = process.cwd(),
 ): Agent {
-  const skillGuidance = loadCodeReviewSkillBody(repoRoot);
+  const skillGuidance = `${loadCodeReviewSkillBody(repoRoot)}\n\n---\n\n${loadSecurityReviewSkillBody(repoRoot)}`;
 
   return new Agent({
     id: "qa-engineer",
