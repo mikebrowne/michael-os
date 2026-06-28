@@ -75,10 +75,24 @@ consolidated **QA Engineer** that runs a **deterministic verification workflow**
 - launchd plist documented in `docs/local-dev.md`.
 
 ## Verification (Slice 6)
-- CI integration tests (zero secrets): staging/promotion/rollback against a **local bare git repo**;
-  `GhRunner` calls + fake CI statuses; permission-scanner unit tests; QA verification machinery with
-  a controlled model; restart drain + lifecycle messages; harness boot smoke test.
-- Local-only `npm run eval:promotion` (optional): real model + real `gh` PR against a throwaway repo.
+Deterministic suites run in CI with zero secrets; judgment evals run local-only with a real model.
+
+- **Machinery (CI):** staging/promotion/rollback against a **local bare git repo**; `GhRunner` calls
+  + fake CI statuses (remote-red blocks unless overridden); QA verification machinery (controlled
+  model); ledger written; jobs never stuck.
+- **Safety/security (CI):** **no-direct-push-to-main** regression; **gate-cannot-be-skipped**
+  invariant; override recorded in ledger/telemetry; **approval audit** (approval + denial logged;
+  denial aborts with no side effects); **clearance** (QA Engineer cannot promote/rollback/restart);
+  **permission scanner** per-rule cases + clean-diff negative.
+- **Remediation/red-path (CI, controlled model):** loop **cap halts** (no infinite loop) →
+  `blocked` + escalate; attempts recorded + fresh-context (findings, not transcript); triage routing
+  (security/permission surfaced, spec-gap escalated, code-level looped); NO routing (fix/re-spec/
+  park/abandon) + `parked` resume; `staged`/`blocked`/`parked` in `WorkItemStage`.
+- **Restart (CI):** drain (refuse new jobs; in-flight finish/marked; state persisted; sentinel exit)
+  + three lifecycle messages; harness boot smoke test.
+- **Judgment evals (local-only, real model):** `npm run eval:promotion` (end-to-end clean promote)
+  plus seeded-vulnerability-caught, seeded-defect-caught, no-false-block-on-clean, triage-routes-
+  correctly, and remediation-converges/halts.
 
 # Acceptance Criteria
 
@@ -94,7 +108,13 @@ consolidated **QA Engineer** that runs a **deterministic verification workflow**
       down/up, back-up includes the commit SHA.
 - [ ] Permission scan flags capability-expanding hunks for explicit acknowledgement.
 - [ ] Remote CI red blocks merge unless overridden.
-- [ ] CI machinery tests pass against a bare-repo remote with zero secrets; local eval documented.
+- [ ] CI machinery tests pass against a bare-repo remote with zero secrets, including
+      no-direct-push-to-main, gate-cannot-be-skipped, approval-audit (denial aborts, no side effects),
+      and clearance (QA Engineer cannot promote/rollback/restart).
+- [ ] Permission scanner has per-rule tests + a clean-diff negative (no false positives).
+- [ ] Loop-cap-halts test proves the remediation loop never runs forever.
+- [ ] Judgment evals (local-only) prove the gates catch a seeded vuln + seeded defect, don't
+      false-block a clean change, route triage correctly, and converge/halt; eval scripts documented.
 - [ ] A red verdict / operator NO kicks the change back to the EL (not promoted, not discarded); PR
       stays open as a draft.
 - [ ] The EL remediation loop is bounded (cap 3, configurable) and hard-stops into `blocked` with an
@@ -139,5 +159,7 @@ dangerous-capability coverage (shell, dependency install, file deletion, secrets
 
 - `npm run typecheck`
 - `npm run lint`
-- `npm run test`
-- `npm run eval:promotion` (local-only, requires API keys + `gh` auth)
+- `npm run test` (includes the deterministic machinery / safety / remediation / restart suites)
+- `npm run eval:promotion` (local-only, requires API keys + `gh` auth) — end-to-end clean promote
+- `npm run eval:gates` (local-only, requires API keys) — gate recall/precision (seeded vuln + seeded
+  defect caught, no false-block), triage routing, remediation converge/halt

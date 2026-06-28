@@ -196,21 +196,69 @@ override logging and the "observability expands with capability" rule.
 
 ## Testing the north star (honoring zero-secret CI)
 
-- **CI (deterministic, no secrets):**
-  - **Staging/promotion/rollback** integration test against a **local bare git repo** (`file://`
-    origin): stage (branch+push) → promote (merge) → rollback (`git revert`); assert the
-    `PromotionRecord` ledger and forward-only history.
-  - **`gh` behind `GhRunner`**: PR-create / `pr checks` / merge calls asserted; fake remote CI
-    statuses (green/red/override) drive the gate.
-  - **Permission scanner**: pure-function unit tests over representative diffs.
-  - **QA verification machinery** (controlled model): gates run in deterministic order; composite
-    verdict; blocking + per-gate override honored; telemetry (`gate.*`, `promotion.*`); ledger
-    written; jobs never stuck.
-  - **Restart**: drain→exit with injected process control; assert the three lifecycle messages on
-    the notification bus (down/up/back-with-SHA). Harness boot smoke test.
-- **Local-only (real model + real `gh`):** an optional eval that stages a real PR against a throwaway
-  repo and verifies the QA Engineer's gates + promotion via observability. Local-only per the
-  secret-handling rule.
+Two layers: **deterministic tests run in CI with zero secrets** (the machinery + safety invariants);
+**judgment evals run local-only with a real model** (proving the gates aren't rubber stamps). The
+ratchet: as much as possible is pinned by deterministic tests; only irreducible judgment is left to
+evals.
+
+### A. Deterministic machinery tests (CI, no secrets)
+- **Staging/promotion/rollback** integration test against a **local bare git repo** (`file://`
+  origin): stage (branch+push) → promote (merge) → rollback (`git revert`); assert the
+  `PromotionRecord` ledger and forward-only history (no force-push / history rewrite).
+- **No direct push to `main` (regression):** assert the only path to `main` is a promotion merge —
+  the old direct-push `ship-implementation` path is gone.
+- **`gh` behind `GhRunner`**: PR-create / `pr checks` / merge calls asserted; fake remote CI
+  statuses (green/red/override) drive the gate; remote-red **blocks** merge unless overridden.
+- **QA verification machinery** (controlled model): gates run in deterministic order; composite
+  verdict; blocking + per-gate override honored; telemetry (`gate.*`, `promotion.*`); ledger
+  written; jobs never stuck.
+- **Gate cannot be skipped (invariant):** the verification workflow always runs the full gate set in
+  order; a dropped/skipped gate fails the test (the core ADR 0008 property).
+- **Override is accountable:** an operator override of a red gate is recorded in the
+  `PromotionRecord` + telemetry.
+
+### B. Safety / security tests (CI, no secrets)
+- **Approval audit (Decision C):** every approval **and denial** of promote/rollback/restart is
+  logged with audit context; a **denial aborts with no side effects** (nothing merged/reverted/exited).
+- **Authority / clearance:** the QA Engineer (employee) **structurally cannot** invoke
+  promote/rollback/restart; only the EL (management) can, and only after operator YES.
+- **Permission scanner — per-rule cases:** one test per rule (new dangerous tool; authority
+  escalation `employee→management`; dependency/lockfile change; security/CI rails —
+  `.github/workflows/**`, `.gitignore`, gitleaks, `.env.example`, `AGENTS.md`, `.cursor/rules/**`;
+  shell/delete/network/message code patterns) **plus a clean-diff negative** (no false positives).
+
+### C. Remediation / red-path tests (CI, no secrets — controlled model)
+- **Loop cap halts (no infinite loop):** a perpetually-red build stops at exactly the cap, transitions
+  to `blocked`, and escalates — never loops forever (the operator's explicit concern).
+- **Bounded-loop bookkeeping:** each attempt is recorded on the Job/telemetry; remediation input
+  carries the structured findings (fresh context), not the accumulated transcript.
+- **Triage routing:** security/permission findings → surfaced (never auto-fixed); spec-gap →
+  escalate (no loop spent); code-level → enter the loop.
+- **NO routing + states:** fix / re-spec / **park** / abandon each produce the correct state
+  transition + PR action; `parked` → draft PR + `parked` label and **resumes** via `resume #N`;
+  `staged` / `blocked` / `parked` exist in `WorkItemStage`.
+
+### D. Restart tests (CI, no secrets)
+- **Restart**: drain→exit with injected process control (new jobs refused during drain; in-flight
+  finish or are cleanly marked; state persisted; sentinel exit code); assert the three lifecycle
+  messages on the notification bus (down/up/back-with-SHA). Harness boot smoke test via
+  `createMastraHarness`.
+
+### E. Judgment evals (local-only, real model — never in CI)
+The deterministic tests prove the *plumbing*; these prove the *gates actually work*. All gated behind
+local-only scripts per the secret-handling rule.
+- **`eval:promotion`** — the EL stages → verifies → promotes a clean change end-to-end (observed via
+  traces).
+- **Security gate catches a seeded vulnerability** — a planted known vuln in the staged diff is
+  flagged by security-review (recall).
+- **Code review catches a seeded defect** — a planted bug the acceptance test would *not* catch is
+  flagged by code-review (recall).
+- **No false-block on a clean change** — a legitimate change passes all gates with no spurious block
+  (precision — guards against "make the gates strict and useless").
+- **Triage routes correctly** — a spec-gap-style failure escalates; a code-bug-style failure enters
+  the loop.
+- **Remediation converges / halts** — a seeded simple bug goes red → EL fix loop → green within the
+  cap; a genuinely unfixable one halts at the cap (both directions).
 
 ## Delivery slices (thin vertical, ordered)
 
@@ -265,8 +313,12 @@ override logging and the "observability expands with capability" rule.
 - **Acceptance:** restart drains cleanly; client shows down→up with the new commit SHA.
 
 ### Slice 6 — North-star verification
-- CI machinery integration tests (bare-repo remote, controlled model, zero secrets).
-- Optional local-only real-model + real-`gh` eval.
+- Deterministic CI tests (zero secrets): machinery (A) + safety/security (B) + remediation/red-path
+  (C) + restart (D) — see "Testing the north star".
+- Judgment evals (E), local-only with a real model: `eval:promotion` plus the seeded-vuln,
+  seeded-defect, no-false-block, triage-routing, and remediation-converge/halt evals.
+- **Acceptance:** the deterministic suites pass with zero secrets against the bare-repo remote; the
+  local eval scripts are documented and runnable on the operator's machine.
 
 ## In scope (Phase 5)
 - PR-based staging + operator-approved promotion (replaces direct-to-main).
@@ -278,7 +330,9 @@ override logging and the "observability expands with capability" rule.
 - Red/NO **remediation loop** (EL-owned, light triage, cap 3 → `blocked`); four NO routes
   (fix / re-spec / park / abandon); `staged` / `blocked` / `parked` states.
 - **Approval-audit logging** for promote/rollback/restart (Decision C; partial BL-003).
-- Tests via bare-repo fake remote + `GhRunner`; optional local real eval.
+- Deterministic test suites (machinery, safety/security, remediation/red-path, restart) via bare-repo
+  fake remote + `GhRunner`; a local-only judgment **eval matrix** (gate recall/precision, triage,
+  remediation convergence).
 
 ## Out of scope (→ Phase 5b / later)
 - Multi-environment staging / canary / blue-green.
@@ -306,7 +360,13 @@ override logging and the "observability expands with capability" rule.
 - [ ] **Controlled restart** drains in-flight Jobs and relaunches via supervisor, with chat messages
       for down/up (back-up includes the commit SHA).
 - [ ] CI tests the staging/promotion/rollback + verification machinery against a bare-repo remote
-      with zero secrets; an optional local eval verifies the real path.
+      with zero secrets, including: **no-direct-push-to-main** regression, **gate-cannot-be-skipped**
+      invariant, **approval audit** (denial aborts, no side effects), and **clearance** (QA Engineer
+      cannot promote/rollback/restart).
+- [ ] The **permission scanner** has per-rule tests plus a clean-diff negative (no false positives).
+- [ ] **Judgment evals** (local-only, real model) prove the gates aren't rubber stamps: seeded
+      vulnerability caught, seeded defect caught, no false-block on a clean change, triage routes
+      correctly, and remediation converges/halts at the cap.
 - [ ] A red verdict or operator NO **kicks the change back to the EL** (not promoted, not discarded);
       the PR stays open as a draft.
 - [ ] The EL remediation loop is **bounded** (cap 3, configurable) and hard-stops into `blocked`

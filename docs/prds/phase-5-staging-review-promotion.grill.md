@@ -114,18 +114,34 @@ Synthesized from the grill session on 2026-06-28. Builds on
 
 ## Testing the north star (D10) — real mechanism, zero secrets
 
+Two layers: **deterministic tests in CI** (machinery + safety invariants) and **judgment evals
+local-only** (gates aren't rubber stamps). Pin as much as possible deterministically; leave only
+irreducible judgment to evals.
+
+**Deterministic (CI, no secrets):**
 - **Fake remote = a local bare git repo** (`file://` origin) in a temp dir; real `git` exercises the
-  actual stage → promote → **rollback (`git revert`)** path with no network/secrets.
-- **`gh` behind a `GhRunner`** (mirroring the existing `GitRunner`) so PR-create/`pr checks`/merge
-  are injectable; tests drive fake CI statuses (green/red/override).
-- **Permission scanner** = pure function over a diff → deterministic unit tests.
-- **QA verification machinery** = Phase 4-style integration test with a controlled model: gates run
-  in order, composite verdict produced, blocking + per-gate override honored, telemetry emitted,
-  promotion ledger written.
-- **Restart** = test drain→exit with injected process control; assert the three lifecycle messages
-  on the notification bus.
-- **Local-only real eval** (optional, never in CI): real model + real `gh` PR against a throwaway
-  repo, per the secret-handling rule.
+  actual stage → promote → **rollback (`git revert`)** path with no network/secrets (forward-only).
+- **No-direct-push-to-main regression** — the only path to `main` is a promotion merge.
+- **`gh` behind a `GhRunner`** (mirroring `GitRunner`) so PR-create/`pr checks`/merge are injectable;
+  tests drive fake CI statuses (green/red/override); remote-red blocks unless overridden.
+- **QA verification machinery** (controlled model): gates run in order, composite verdict, blocking +
+  per-gate override honored + override recorded, telemetry, ledger written, jobs never stuck.
+- **Gate-cannot-be-skipped** invariant (the core ADR 0008 property).
+- **Approval audit (Decision C):** approval + denial logged; denial aborts with no side effects.
+- **Clearance:** QA Engineer (employee) cannot promote/rollback/restart.
+- **Permission scanner** = pure function over a diff → one test per rule + a clean-diff negative.
+- **Remediation/red-path** (controlled model): **loop cap halts** (no infinite loop) → `blocked` +
+  escalate; attempts recorded + fresh-context; triage routing; NO routing (fix/re-spec/park/abandon)
+  + `parked` resume; `staged`/`blocked`/`parked` states.
+- **Restart** = drain→exit with injected process control (refuse new jobs; in-flight finish/marked;
+  state persisted; sentinel exit); assert the three lifecycle messages; harness boot smoke test.
+
+**Judgment evals (local-only, real model — never in CI):**
+- `eval:promotion` — end-to-end clean stage→verify→promote, observed via traces.
+- Gate **recall**: seeded vulnerability caught (security); seeded defect caught (code review).
+- Gate **precision**: no false-block on a clean change.
+- **Triage** routes correctly (spec-gap escalates; code-bug loops).
+- **Remediation** converges (seeded simple bug → green within cap) and **halts** (unfixable → cap).
 
 ## Approval gating & BL-003 overlap (D14) — Option C
 
@@ -226,8 +242,10 @@ What happens when verification is **red** (a gate fails, not overridden) or the 
 - Docs flow → **docs ship directly**; pipeline is implementation-only.
 - Restart → **graceful drain + clean exit + launchd/supervisor relaunch**, EL suggests on `src/**`
   promotions, + **three chat lifecycle messages** (down/up/back-with-SHA).
-- Testing → **local bare-repo fake remote + `GhRunner`** + deterministic gate/scanner/restart tests
-  + optional local real eval.
+- Testing → **local bare-repo fake remote + `GhRunner`**; deterministic CI suites (machinery +
+  **safety/security**: no-direct-push, gate-can't-skip, approval-audit, clearance, per-rule scanner;
+  **remediation**: cap-halts, triage, NO routing; restart) **+ a local-only judgment eval matrix**
+  (gate recall/precision, triage, remediation converge/halt).
 - ADRs → **two** (0007 promotion model, 0008 QA Engineer); restart documented in the north-star doc.
 - Approval gating / BL-003 overlap → **Option C**: reuse the simple gate for promote/rollback/restart
   but **log approvals + denials**; full capability coverage stays in a shrunken BL-003.
