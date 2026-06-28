@@ -20,7 +20,7 @@ describe("agentAuthority", () => {
 
   it("registry assigns authority correctly", () => {
     expect(getAgent("engineering-lead")?.authority).toBe("management");
-    expect(getAgent("code-reviewer")?.authority).toBe("employee");
+    expect(getAgent("qa-engineer")?.authority).toBe("employee");
   });
 
   it("filters tool map for employees", () => {

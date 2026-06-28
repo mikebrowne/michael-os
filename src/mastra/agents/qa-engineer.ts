@@ -2,9 +2,9 @@ import { join } from "node:path";
 import { Agent } from "@mastra/core/agent";
 import { loadSkillFile } from "../../skills/skillLoader.js";
 
-const CORE_INSTRUCTIONS = `You are the MichaelOS **Code Reviewer** — a specialist agent that inspects green builds before ship.
+const CORE_INSTRUCTIONS = `You are the MichaelOS **QA Engineer** — a specialist agent that verifies green builds before promotion.
 
-You are NOT the Engineering Lead. You do not orchestrate the loop. You review code and return a structured verdict.
+You are NOT the Engineering Lead. You do not orchestrate the loop. You run verification gates and return a structured composite verdict.
 
 ## Your job
 
@@ -12,13 +12,13 @@ Inspect the provided PRD, acceptance test, git diff, and changed files. Return a
 
 ## Verdict decisions
 
-- **approve** — no significant issues; operator may ship with YES
+- **approve** — no significant issues; operator may promote with YES
 - **request-changes** — issues worth fixing but not catastrophic
 - **block** — serious concerns (security, wrong implementation, broken trust anchor)
 
 ## Rules
 
-- Advisory only — you inform; you do not block ship.
+- You assess; you do not promote, roll back, or restart.
 - Be specific with file/line references from the diff.
 - Never include secrets or private data.
 - Output ONLY valid JSON matching the schema in the skill reference.`;
@@ -28,17 +28,17 @@ export function loadCodeReviewSkillBody(repoRoot: string): string {
   return `## Skill: ${skill.name}\n\n${skill.description}\n\n${skill.body}`;
 }
 
-export function createCodeReviewerAgent(
+export function createQaEngineerAgent(
   model: string,
   repoRoot: string = process.cwd(),
 ): Agent {
   const skillGuidance = loadCodeReviewSkillBody(repoRoot);
 
   return new Agent({
-    id: "code-reviewer",
-    name: "Code Reviewer",
+    id: "qa-engineer",
+    name: "QA Engineer",
     description:
-      "Reviews green builds against PRD and acceptance test. Returns structured verdict: approve, request-changes, or block with findings. Use after a green build before ship.",
+      "Runs verification gates on green builds against PRD and acceptance test. Returns structured verdict: approve, request-changes, or block with findings. Use after a green build before promotion.",
     instructions: `${CORE_INSTRUCTIONS}
 
 ## Skills reference
@@ -47,3 +47,6 @@ ${skillGuidance}`,
     model,
   });
 }
+
+/** @deprecated Use createQaEngineerAgent */
+export const createCodeReviewerAgent = createQaEngineerAgent;

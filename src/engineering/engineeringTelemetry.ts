@@ -33,7 +33,7 @@ export function createEngineeringTelemetry(
     logAgentInvoked(agentId, role, modelTier) {
       log("agent.invoked", { agentId, role, modelTier });
     },
-    logReviewVerdict(decision, findingCount, agentId = "code-reviewer") {
+    logReviewVerdict(decision, findingCount, agentId = "qa-engineer") {
       log("review.verdict", { agentId, decision, findingCount });
     },
     logRegistryLoaded() {

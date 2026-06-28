@@ -6,7 +6,7 @@ import type { ApprovalState } from "./approvalGate.js";
 import { createApprovalState } from "./approvalGate.js";
 import type { GhRunner } from "./github.js";
 import type { GitRunner } from "./ship.js";
-import { createCodeReviewerAgent } from "../mastra/agents/code-reviewer.js";
+import { createQaEngineerAgent } from "../mastra/agents/qa-engineer.js";
 import { createEngineeringTelemetry } from "./engineeringTelemetry.js";
 import { createRunLogger } from "../logging/runLogger.js";
 import type { ReviewVerdict } from "./review.js";
@@ -27,7 +27,7 @@ export type EngineeringSessionContext = {
   currentWorkItem: WorkItem | null;
   lastBuildResult: RunAgentBuildResult | null;
   lastReviewVerdict: ReviewVerdict | null;
-  codeReviewerAgent: Agent;
+  qaEngineerAgent: Agent;
   telemetry: EngineeringTelemetry;
   observability: ObservabilityStore;
   jobRegistry: JobRegistry;
@@ -82,7 +82,7 @@ export function createEngineeringSessionContext(
     githubRepo?: string;
     ghRunner?: GhRunner;
     gitRunner?: GitRunner;
-    codeReviewerAgent?: Agent;
+    qaEngineerAgent?: Agent;
     telemetry?: EngineeringTelemetry;
     observability?: ObservabilityStore;
     jobRegistry?: JobRegistry;
@@ -114,9 +114,9 @@ export function createEngineeringSessionContext(
     currentWorkItem: null,
     lastBuildResult: null,
     lastReviewVerdict: null,
-    codeReviewerAgent:
-      options?.codeReviewerAgent ??
-      createCodeReviewerAgent(config.defaultReviewModel, repoPath),
+    qaEngineerAgent:
+      options?.qaEngineerAgent ??
+      createQaEngineerAgent(config.defaultReviewModel, repoPath),
     telemetry,
     observability,
     jobRegistry: options?.jobRegistry ?? createJobRegistry(config.mastraDir),

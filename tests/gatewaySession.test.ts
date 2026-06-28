@@ -53,7 +53,7 @@ describe("gateway session commands", () => {
       jobRegistry,
       jobRunner,
       repoPath: process.cwd(),
-      codeReviewerAgent: createMockAgent(),
+      qaEngineerAgent: createMockAgent(),
     });
     const runtime = await createGatewayRuntime({
       config,
@@ -72,7 +72,7 @@ describe("gateway session commands", () => {
         kind: "code-review",
         parentWorkItem: "feat-a",
         issueNumber: 1,
-        delegatedTo: "code-reviewer",
+        delegatedTo: "qa-engineer",
         input: { workItemSlug: "feat-a" },
       });
 
@@ -102,7 +102,7 @@ describe("gateway session commands", () => {
       const job = await jobRegistry.createJob({
         kind: "code-review",
         parentWorkItem: "feat-b",
-        delegatedTo: "code-reviewer",
+        delegatedTo: "qa-engineer",
         input: { workItemSlug: "feat-b" },
       });
 
@@ -111,7 +111,7 @@ describe("gateway session commands", () => {
       const text = result.output.join("");
       expect(text).toContain(job.id);
       expect(text).toContain("feat-b");
-      expect(text).toContain("code-reviewer");
+      expect(text).toContain("qa-engineer");
     } finally {
       rmSync(dir, { recursive: true, force: true });
     }

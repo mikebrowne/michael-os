@@ -71,7 +71,7 @@ export class JobRunner {
   }> {
     const traceId = options.traceId ?? randomUUID();
     const runId = randomUUID();
-    const delegatedTo = options.delegatedTo ?? "code-reviewer";
+    const delegatedTo = options.delegatedTo ?? "qa-engineer";
 
     const job = await this.deps.jobRegistry.createJob({
       kind: "code-review",

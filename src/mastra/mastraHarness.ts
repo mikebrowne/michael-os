@@ -9,7 +9,7 @@ import { createJobRegistry } from "../engineering/jobRegistry.js";
 import { createJobRunner } from "../engineering/jobRunner.js";
 import { demoAgent } from "./agents/demo-agent.js";
 import { createEngineeringLeadAgent } from "./agents/engineering-lead.js";
-import { createCodeReviewerAgent } from "./agents/code-reviewer.js";
+import { createQaEngineerAgent } from "./agents/qa-engineer.js";
 import { demoWorkflow } from "./workflows/demo-workflow.js";
 import { listAgents } from "./agentRegistry.js";
 import { createMastraStorage } from "./mastraStorage.js";
@@ -22,7 +22,7 @@ export type MastraHarness = {
   jobRegistry: ReturnType<typeof createJobRegistry>;
   jobRunner: ReturnType<typeof createJobRunner>;
   runLogger: ReturnType<typeof createRunLogger>;
-  codeReviewerAgent: ReturnType<typeof createCodeReviewerAgent>;
+  qaEngineerAgent: ReturnType<typeof createQaEngineerAgent>;
   engineeringLeadAgent: ReturnType<typeof createEngineeringLeadAgent>;
   engineeringSession: ReturnType<typeof createEngineeringSessionContext>;
   agentRegistry: ReturnType<typeof listAgents>;
@@ -57,7 +57,7 @@ export function createMastraHarness(
     repoPath,
   });
 
-  const codeReviewerAgent = createCodeReviewerAgent(
+  const qaEngineerAgent = createQaEngineerAgent(
     config.defaultReviewModel,
     repoPath,
   );
@@ -66,7 +66,7 @@ export function createMastraHarness(
     config.defaultModel,
     engineeringSession,
     repoPath,
-    codeReviewerAgent,
+    qaEngineerAgent,
   );
 
   const jobRunner = createJobRunner({
@@ -79,7 +79,7 @@ export function createMastraHarness(
   const agentRegistry = listAgents();
 
   const mastra = new Mastra({
-    agents: { demoAgent, engineeringLeadAgent, codeReviewerAgent },
+    agents: { demoAgent, engineeringLeadAgent, qaEngineerAgent },
     workflows: { demoWorkflow },
     storage,
     logger: new PinoLogger({
@@ -95,7 +95,7 @@ export function createMastraHarness(
     jobRegistry,
     jobRunner,
     runLogger,
-    codeReviewerAgent,
+    qaEngineerAgent,
     engineeringLeadAgent,
     engineeringSession,
     agentRegistry,

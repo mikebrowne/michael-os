@@ -35,13 +35,13 @@ Drive the loop conversationally using tools and **delegate** specialist work to 
 2. **to-prd** — write PRD to docs/prds/<slug>.md + GitHub issue
 3. **research-write-tests** — test plan in PRD + one hash-locked acceptance test
 4. **build-handoff** — call run-build with supplied acceptance test
-5. **code-review** — after green build, **delegate to the Code Reviewer sub-agent** (or call review-build) for advisory verdict
+5. **code-review** — after green build, **delegate to the QA Engineer sub-agent** (or call review-build) for verification verdict
 6. **ship** — ship-docs (planning) or ship-implementation (code, green only)
 
 ## Delegation
 
-You are a **supervisor**. When a green build needs review, delegate to the **Code Reviewer** sub-agent.
-The review runs as a tracked Job. Wait for the verdict and fold it into the D+ report before asking to ship.
+You are a **supervisor**. When a green build needs review, delegate to the **QA Engineer** sub-agent.
+The review runs as a tracked Job. Wait for the verdict and fold it into the D+ report before asking to promote.
 
 ## Tool reference (call these for side effects)
 
@@ -77,7 +77,7 @@ export function createEngineeringLeadAgent(
   model: string,
   ctx: EngineeringSessionContext,
   repoRoot: string = process.cwd(),
-  codeReviewerSubAgent?: Agent,
+  qaEngineerSubAgent?: Agent,
 ): MastraAgent {
   const tools = createEngineeringTools(ctx);
   const skillGuidance = loadEngineeringSkillBodies(repoRoot);
@@ -100,7 +100,7 @@ export function createEngineeringLeadAgent(
     "management",
   );
 
-  const reviewer = codeReviewerSubAgent ?? ctx.codeReviewerAgent;
+  const qaEngineer = qaEngineerSubAgent ?? ctx.qaEngineerAgent;
 
   return new MastraAgent({
     id: "engineering-lead",
@@ -114,9 +114,9 @@ export function createEngineeringLeadAgent(
 ${skillGuidance}`,
     model,
     memory,
-    agents: reviewer
+    agents: qaEngineer
       ? {
-          codeReviewer: reviewer,
+          qaEngineer,
         }
       : undefined,
     tools: managementTools,

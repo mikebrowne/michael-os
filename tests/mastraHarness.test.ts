@@ -27,13 +27,13 @@ describe("mastraHarness", () => {
       const harness = createMastraHarness(config, process.cwd());
 
       expect(harness.engineeringLeadAgent.id).toBe("engineering-lead");
-      expect(harness.codeReviewerAgent.id).toBe("code-reviewer");
+      expect(harness.qaEngineerAgent.id).toBe("qa-engineer");
       expect(harness.jobRunner).toBeDefined();
       expect(harness.engineeringSession.jobRunner).toBe(harness.jobRunner);
 
       const ids = harness.agentRegistry.map((a) => a.id);
       expect(ids).toContain("engineering-lead");
-      expect(ids).toContain("code-reviewer");
+      expect(ids).toContain("qa-engineer");
 
       expect(
         "setBackgroundTaskManager" in harness.jobRunner,

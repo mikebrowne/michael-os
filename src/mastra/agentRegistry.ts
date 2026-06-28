@@ -59,12 +59,12 @@ export const AGENT_REGISTRY: AgentRegistration[] = [
     tools: ["run-build"],
   },
   {
-    id: "code-reviewer",
-    role: "Code Reviewer",
+    id: "qa-engineer",
+    role: "QA Engineer",
     kind: "mastra-agent",
     authority: "employee",
     description:
-      "Reviews green builds against PRD and acceptance test. Advisory verdict before ship.",
+      "Runs verification gates on green builds against PRD and acceptance test. Composite verdict before promotion.",
     model: "reasoning-tier",
     directChat: false,
     standalone: true,

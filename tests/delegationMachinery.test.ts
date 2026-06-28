@@ -15,7 +15,7 @@ import type { RunAgentBuildResult } from "../src/agentBuild/runAgentBuild.js";
 
 function createMockReviewerAgent(): Agent {
   return {
-    id: "code-reviewer",
+    id: "qa-engineer",
     generate: vi.fn(async () => ({
       object: {
         decision: "approve",
@@ -49,7 +49,7 @@ describe("delegation machinery", () => {
         jobRegistry,
         jobRunner,
         observability,
-        codeReviewerAgent: createMockReviewerAgent(),
+        qaEngineerAgent: createMockReviewerAgent(),
       });
 
       ctx.currentWorkItem = {

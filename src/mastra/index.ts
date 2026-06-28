@@ -10,7 +10,7 @@ export const {
   jobRegistry,
   jobRunner,
   runLogger,
-  codeReviewerAgent,
+  qaEngineerAgent,
   engineeringLeadAgent,
   engineeringSession,
   agentRegistry,

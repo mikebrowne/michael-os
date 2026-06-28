@@ -11,20 +11,20 @@ describe("agentRegistry", () => {
     expect(agents.length).toBeGreaterThanOrEqual(3);
     expect(getAgent("engineering-lead")?.kind).toBe("mastra-agent");
     expect(getAgent("software-engineer")?.kind).toBe("external-executor");
-    expect(getAgent("code-reviewer")?.kind).toBe("mastra-agent");
+    expect(getAgent("qa-engineer")?.kind).toBe("mastra-agent");
   });
 
   it("lists mastra agents only", () => {
     const mastra = listMastraAgents();
     expect(mastra.every((a) => a.kind === "mastra-agent")).toBe(true);
-    expect(mastra.map((a) => a.id)).toContain("code-reviewer");
+    expect(mastra.map((a) => a.id)).toContain("qa-engineer");
   });
 
   it("reserves directChat for phase 4b", () => {
-    const reviewer = getAgent("code-reviewer");
-    expect(reviewer?.directChat).toBe(false);
-    expect(reviewer?.standalone).toBe(true);
-    expect(reviewer?.authority).toBe("employee");
+    const qaEngineer = getAgent("qa-engineer");
+    expect(qaEngineer?.directChat).toBe(false);
+    expect(qaEngineer?.standalone).toBe(true);
+    expect(qaEngineer?.authority).toBe("employee");
     expect(getAgent("engineering-lead")?.authority).toBe("management");
   });
 });

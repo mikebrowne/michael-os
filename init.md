@@ -204,6 +204,10 @@ The system can safely extend itself.
 * Engineering review
 * Safe activation
 
+Note: I had a though about adding agents w/o needing to restart the gateway. What if an agent can just be a YAML like file and we have a set of code that just creates the agents based on the YAML? That way we aren't changing any .ts files. By doing this, it may be easier to have the system spin up its own agents.
+
+Note: for the hiring agent, we probably want to have a hiring process (probably a hiring skill or onboarding skill or something) that outlines what needs to happen to hire or onboard a new agent (would hiring and onboarding be 2 different things? Maybe!)
+
 # Phase 8: Chief of Staff
 
 ## Goal

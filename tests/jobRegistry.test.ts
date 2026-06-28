@@ -14,7 +14,7 @@ describe("jobRegistry", () => {
         kind: "code-review",
         parentWorkItem: "test-feature",
         issueNumber: 42,
-        delegatedTo: "code-reviewer",
+        delegatedTo: "qa-engineer",
         input: { workItemSlug: "test-feature" },
         traceId: "trace-1",
       });

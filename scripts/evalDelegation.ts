@@ -7,7 +7,7 @@ import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { loadConfig, requireOpenAiKey } from "../src/config/loadConfig.js";
-import { createCodeReviewerAgent } from "../src/mastra/agents/code-reviewer.js";
+import { createQaEngineerAgent } from "../src/mastra/agents/qa-engineer.js";
 import { createObservabilityStore } from "../src/observability/observabilityStore.js";
 import { createObservabilityConfig } from "../src/observability/observabilityConfig.js";
 import { createJobRegistry } from "../src/engineering/jobRegistry.js";
@@ -37,7 +37,7 @@ async function main() {
     });
     const jobRegistry = createJobRegistry(evalConfig.mastraDir);
     const jobRunner = createJobRunner({ jobRegistry, observability });
-    const codeReviewerAgent = createCodeReviewerAgent(
+    const qaEngineerAgent = createQaEngineerAgent(
       evalConfig.defaultReviewModel,
       process.cwd(),
     );
@@ -46,7 +46,7 @@ async function main() {
       observability,
       jobRegistry,
       jobRunner,
-      codeReviewerAgent,
+      qaEngineerAgent,
     });
 
     const workItem = {

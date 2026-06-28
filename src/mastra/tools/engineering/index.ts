@@ -165,8 +165,8 @@ export function createEngineeringTools(ctx: EngineeringSessionContext) {
 
     requireOpenAiKey(ctx.config);
     ctx.telemetry.logAgentInvoked(
-      "code-reviewer",
-      "Code Reviewer",
+      "qa-engineer",
+      "QA Engineer",
       ctx.config.defaultReviewModel,
     );
 
@@ -174,7 +174,7 @@ export function createEngineeringTools(ctx: EngineeringSessionContext) {
     const acceptanceTest = readFileSync(item.acceptanceTestPath, "utf-8");
 
     const runReview = async () =>
-      runCodeReview(ctx.codeReviewerAgent, {
+      runCodeReview(ctx.qaEngineerAgent, {
         gitDiff: buildResult.gitDiff,
         prdMarkdown,
         acceptanceTest,
