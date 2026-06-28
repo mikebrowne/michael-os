@@ -44,6 +44,55 @@ _Avoid_: "call", "step", "task" (reserve "task" for plain English; a Job is the 
 An agent's permission level on the `AgentRegistration` — `management` (e.g. the Engineering Lead) may use dangerous tools (with operator approval); `employee` (e.g. the Code Reviewer and future delegates) structurally cannot.
 _Avoid_: "role" (role = who the agent is; authority = what it is allowed to do)
 
+**Tool**:
+A **deterministic** unit of work — a script or CLI call with a fixed body — exposed to an agent. Its *body* always does the same thing for the same input; its *dispatch* (whether and with what arguments it is called) is decided probabilistically by the agent. Use tools for repeatable, auditable operations.
+_Avoid_: "action", "function" (when meaning the registered unit), "skill" (a skill is judgment, not fixed logic)
+
+**Skill**:
+A **probabilistic** unit of work — an English SOP (prompt) that packages judgment and may call tools, workflows, or other skills. Both its *dispatch* and its *body* are probabilistic. Skills are the home for irreducible judgment and the reviewable, English contract for behavior.
+_Avoid_: "prompt" (a skill is a packaged, reusable prompt + resources)
+
+**Workflow**:
+A **deterministic ordering** of steps (tools and/or skills) — fixed orchestration. The sequence is known in advance; individual steps may still be probabilistic, but the ordering is not.
+_Avoid_: "pipeline" (loosely), "skill" (a skill's orchestration is probabilistic)
+
+**Sub-agent (delegate)**:
+A full agent invoked by another agent as if it were a callable tool. Mastra exposes each configured sub-agent to the parent's model, runs it with its own instructions/model/memory, and returns a structured result. Delegation = treating a probabilistic composite (an agent) as a callable unit. The Code Reviewer is the Engineering Lead's first sub-agent.
+_Avoid_: "child process", "worker" (those are execution mechanics, not the delegation concept)
+
+## Kinds of work (the determinism ratchet)
+
+Two axes describe every unit of work:
+
+- **Dispatch** — how it is chosen and parameterized (who decides to run it, with what inputs).
+- **Body** — how it executes once chosen.
+
+Each can be **deterministic** (decision rule known in advance — codify it) or **probabilistic / judgment** (decision discovered at runtime — let a model handle it). This is the operational meaning of the house rule *code for deterministic work; LLMs for judgment*: the real axis is whether the decision rule is known ahead of time.
+
+The entry points fall on a leaf/composite × deterministic/judgment grid:
+
+| | Deterministic (fixed logic) | Probabilistic (judgment) |
+|---|---|---|
+| **Leaf** (does one thing) | **Tool** | a raw model call |
+| **Composite** (orchestrates) | **Workflow** | **Skill** / the agent itself |
+
+A **tool** has a deterministic body but a probabilistic dispatch (the agent decides to call it). A **sub-agent** is a probabilistic composite invoked as if it were a leaf tool — that is exactly what delegation is.
+
+### The ratchet (how a capability matures)
+
+Probabilistic is where you are *before* you understand a problem; deterministic is where you are *after*. Capabilities mature along a one-way ratchet:
+
+1. **Observe** a happy path (a human, or the agent, does it once).
+2. **Capture** it as a skill — an English SOP, cheap to write and review.
+3. **Harden** as edge cases appear: each breakage either adds a guardrail to the skill or is *extracted* into a deterministic tool/workflow now that it is understood. Each fix is pinned by a test (the same red/green discipline used for code).
+4. The skill grows **thinner** — an orchestrator wrapping fatter deterministic pieces — until only the irreducible judgment core remains.
+
+The goal is not to eliminate probabilistic work but to **shrink it to its true minimum**. Deterministic is always cheaper, faster, more auditable, and safer; the boundary moves outward as understanding grows *and* as models get cheaper, but for an org facing a changing world the judgment core never reaches zero. Over-codifying the open-ended part makes the system brittle to novel inputs — the skill is the correct permanent home for genuine judgment.
+
+### Consequence for delegation
+
+Delegation is itself a skill (the judgment of *when / what / to whom*) sitting on a deterministic substrate (job tracking, timeouts, observability). The *mechanism* of "one agent calls another" is provided by **Mastra sub-agents** and should be reused, not hand-rolled (framework-first). What MichaelOS owns is the domain layer on top: **Job** as a noun, correlated **observability**, and **authority** gating.
+
 ## Example dialogue
 
 > **Dev:** When the demo runs, does it read the operator's vault?
@@ -52,3 +101,5 @@ _Avoid_: "role" (role = who the agent is; authority = what it is allowed to do)
 > **Michael:** Run logs are JSONL under `./.logs/`, which is gitignored. Nothing about a run reaches the public repo.
 > **Dev:** When the Engineering Lead has the Code Reviewer look at a green build, what is that?
 > **Michael:** That's a *Job* — a bounded, delegated, traced task under the feature's *WorkItem*. The feature's public identity is its *Issue*; its private lifecycle is the *WorkItem*; each delegation is a *Job*. The Reviewer is an *employee* (no dangerous-tool *authority*); the Lead is *management*. The Job's trace lands in the gitignored `.mastra/` store, redacted.
+> **Dev:** Should the review be a tool or a skill?
+> **Michael:** The *act* of reviewing is a *skill* (judgment), run by the Reviewer *sub-agent*. The *deciding to delegate* is also judgment. What's deterministic — and so belongs in *tools/workflows* — is the substrate around it: tracking the *Job*, timeouts, and *observability*. We start probabilistic, then ratchet the understood parts into deterministic code as edge cases appear.

@@ -1,7 +1,5 @@
 import { EventEmitter } from "node:events";
 import { randomUUID } from "node:crypto";
-import type { BackgroundTaskManager } from "@mastra/core/background-tasks";
-import { createBackgroundTask } from "@mastra/core/background-tasks";
 import type { JobRegistry } from "./jobRegistry.js";
 import type { CodeReviewJobInput } from "./jobKinds.js";
 import type { ObservabilityStore } from "../observability/observabilityStore.js";
@@ -21,7 +19,6 @@ export const jobNotificationBus = new EventEmitter();
 export type JobRunnerDeps = {
   jobRegistry: JobRegistry;
   observability: ObservabilityStore;
-  backgroundTaskManager?: BackgroundTaskManager;
 };
 
 export type RunCodeReviewJobOptions = {
@@ -48,10 +45,6 @@ function formatJobHeadline(
 
 export class JobRunner {
   constructor(private readonly deps: JobRunnerDeps) {}
-
-  setBackgroundTaskManager(manager: BackgroundTaskManager | undefined): void {
-    this.deps.backgroundTaskManager = manager;
-  }
 
   private emitLifecycle(
     event: string,
@@ -99,147 +92,102 @@ export class JobRunner {
       agentId: delegatedTo,
     });
 
-    const execute = async (): Promise<ReviewVerdict> => {
-      await this.deps.jobRegistry.updateJob(job.id, {
-        status: "running",
-        startedAt: new Date().toISOString(),
-      });
-      this.emitLifecycle("job.started", {
-        jobId: job.id,
-        workItemSlug: options.parentWorkItem,
-        issueNumber: options.issueNumber,
-        traceId,
-        agentId: delegatedTo,
-      });
-
-      try {
-        const verdict = await options.executeReview();
-        const completedAt = new Date().toISOString();
-        await this.deps.jobRegistry.updateJob(job.id, {
-          status: "succeeded",
-          output: verdict,
-          completedAt,
-        });
-        this.emitLifecycle(
-          "job.completed",
-          {
-            jobId: job.id,
-            workItemSlug: options.parentWorkItem,
-            issueNumber: options.issueNumber,
-            traceId,
-            agentId: delegatedTo,
-          },
-          {
-            decision: verdict.decision,
-            findingCount: verdict.findings.length,
-            durationMs:
-              completedAt && job.createdAt
-                ? Date.parse(completedAt) - Date.parse(job.createdAt)
-                : undefined,
-          },
-        );
-        this.notifyCompletion({
-          jobId: job.id,
-          kind: "code-review",
-          status: "succeeded",
-          headline: formatJobHeadline(
-            job.id,
-            "succeeded",
-            "code-review",
-            options.issueNumber,
-            verdict.decision,
-          ),
-          parentWorkItem: options.parentWorkItem,
-          issueNumber: options.issueNumber,
-        });
-        return verdict;
-      } catch (error: unknown) {
-        const message = error instanceof Error ? error.message : String(error);
-        await this.deps.jobRegistry.updateJob(job.id, {
-          status: "failed",
-          error: message,
-          completedAt: new Date().toISOString(),
-        });
-        this.emitLifecycle(
-          "job.failed",
-          {
-            jobId: job.id,
-            workItemSlug: options.parentWorkItem,
-            issueNumber: options.issueNumber,
-            traceId,
-            agentId: delegatedTo,
-          },
-          { error: message },
-        );
-        this.notifyCompletion({
-          jobId: job.id,
-          kind: "code-review",
-          status: "failed",
-          headline: formatJobHeadline(
-            job.id,
-            "failed",
-            "code-review",
-            options.issueNumber,
-            message,
-          ),
-          parentWorkItem: options.parentWorkItem,
-          issueNumber: options.issueNumber,
-        });
-        throw error;
-      }
-    };
-
-    const manager = this.deps.backgroundTaskManager;
-    if (manager?.config.enabled) {
-      const toolCallId = randomUUID();
-      const bgTask = createBackgroundTask(manager, {
-        toolName: "code-review",
-        toolCallId,
-        args: { jobId: job.id },
-        agentId: "engineering-lead",
-        runId,
-        context: {
-          executor: {
-            execute: async () => execute(),
-          },
-        },
-      });
-      await this.deps.jobRegistry.updateJob(job.id, {
-        mastraTaskId: toolCallId,
-      });
-      this.emitLifecycle("job.delegated", {
-        jobId: job.id,
-        workItemSlug: options.parentWorkItem,
-        issueNumber: options.issueNumber,
-        traceId,
-        mastraRunId: runId,
-        agentId: delegatedTo,
-      });
-      const dispatch = await bgTask.dispatch();
-      if (dispatch.fallbackToSync) {
-        const verdict = await execute();
-        return { jobId: job.id, verdict };
-      }
-      await bgTask.waitForCompletion();
-      const updated = await this.deps.jobRegistry.getJob(job.id);
-      if (!updated?.output) {
-        throw new Error(`Code review job ${job.id} completed without output`);
-      }
-      return {
-        jobId: job.id,
-        verdict: updated.output as ReviewVerdict,
-      };
-    }
-
     this.emitLifecycle("job.delegated", {
+      jobId: job.id,
+      workItemSlug: options.parentWorkItem,
+      issueNumber: options.issueNumber,
+      traceId,
+      mastraRunId: runId,
+      agentId: delegatedTo,
+    });
+
+    await this.deps.jobRegistry.updateJob(job.id, {
+      status: "running",
+      startedAt: new Date().toISOString(),
+    });
+    this.emitLifecycle("job.started", {
       jobId: job.id,
       workItemSlug: options.parentWorkItem,
       issueNumber: options.issueNumber,
       traceId,
       agentId: delegatedTo,
     });
-    const verdict = await execute();
-    return { jobId: job.id, verdict };
+
+    try {
+      const verdict = await options.executeReview();
+      const completedAt = new Date().toISOString();
+      await this.deps.jobRegistry.updateJob(job.id, {
+        status: "succeeded",
+        output: verdict,
+        completedAt,
+      });
+      this.emitLifecycle(
+        "job.completed",
+        {
+          jobId: job.id,
+          workItemSlug: options.parentWorkItem,
+          issueNumber: options.issueNumber,
+          traceId,
+          agentId: delegatedTo,
+        },
+        {
+          decision: verdict.decision,
+          findingCount: verdict.findings.length,
+          durationMs:
+            completedAt && job.createdAt
+              ? Date.parse(completedAt) - Date.parse(job.createdAt)
+              : undefined,
+        },
+      );
+      this.notifyCompletion({
+        jobId: job.id,
+        kind: "code-review",
+        status: "succeeded",
+        headline: formatJobHeadline(
+          job.id,
+          "succeeded",
+          "code-review",
+          options.issueNumber,
+          verdict.decision,
+        ),
+        parentWorkItem: options.parentWorkItem,
+        issueNumber: options.issueNumber,
+      });
+      return { jobId: job.id, verdict };
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
+      await this.deps.jobRegistry.updateJob(job.id, {
+        status: "failed",
+        error: message,
+        completedAt: new Date().toISOString(),
+      });
+      this.emitLifecycle(
+        "job.failed",
+        {
+          jobId: job.id,
+          workItemSlug: options.parentWorkItem,
+          issueNumber: options.issueNumber,
+          traceId,
+          agentId: delegatedTo,
+        },
+        { error: message },
+      );
+      this.notifyCompletion({
+        jobId: job.id,
+        kind: "code-review",
+        status: "failed",
+        headline: formatJobHeadline(
+          job.id,
+          "failed",
+          "code-review",
+          options.issueNumber,
+          message,
+        ),
+        parentWorkItem: options.parentWorkItem,
+        issueNumber: options.issueNumber,
+      });
+      throw error;
+    }
   }
 }
 

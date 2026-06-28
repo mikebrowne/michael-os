@@ -5,7 +5,7 @@ session on 2026-06-27 ([grill notes](./prds/phase-4-delegation-jobs.grill.md)). 
 [Phase 3](./phase-3-engineering-department.md) (Engineering Department complete) and realizes the
 init.md Phase 4 goal: **allow bounded delegation with full observability**.
 
-**Status:** **complete** (shipped 2026-06-27). Epic [#4 (BL-006)](https://github.com/mikebrowne/michael-os/issues/4); child issues [#18](https://github.com/mikebrowne/michael-os/issues/18)–[#22](https://github.com/mikebrowne/michael-os/issues/22).
+**Status:** **complete** (shipped 2026-06-27; rework 2026-06-28). Epic [#4 (BL-006)](https://github.com/mikebrowne/michael-os/issues/4); child issues [#18](https://github.com/mikebrowne/michael-os/issues/18)–[#22](https://github.com/mikebrowne/michael-os/issues/22). See [delegation rework](./phase-4-delegation-rework.md) for the synchronous-execution revision.
 
 ## North star user story
 
@@ -29,9 +29,9 @@ domain layer** rather than hand-rolling a worker + DB.
 
 | Phase 4 need | Mastra primitive (installed) | What we still own |
 |--------------|------------------------------|-------------------|
-| Delegation (EL → sub-agent) | **Supervisor agents** (`agents`, `onDelegationStart/Complete`, memory isolation, structured output) | Delegation intent in EL instructions; clearance rules |
-| Async / queue / durability | **Background tasks** (`backgroundTaskManager`, evented runs, durable suspend/resume) | Job *semantics* (kind, parent linkage) |
-| Events / monitoring | **PubSub** (`EventEmitterPubSub`) + task stream | Daemon→client forwarding + headlines |
+| Delegation (EL → sub-agent) | **Supervisor agents** (`agents`, memory isolation, structured output) | Delegation intent in EL instructions; clearance rules |
+| Job execution (interactive) | **Synchronous** `jobRunner` (runs delegate inline; background tasks deferred) | Job *semantics* (kind, parent linkage, lifecycle) |
+| Events / monitoring | In-process `jobNotificationBus` + daemon headlines | Daemon→client forwarding |
 | Persistence | **LibSQL** store | `jobRegistry` projection table |
 | Tracing / evals | **observability / telemetry / evals / scores** modules | Domain JSONL + correlation IDs + eval-ready records |
 
@@ -63,9 +63,9 @@ flowchart TB
   CLIENT <--> DAEMON["always-on gateway daemon"]
   DAEMON <--> EL["Engineering Lead (supervisor agent)"]
   DAEMON -.->|"forwards job headlines"| CLIENT
-  EL -->|"delegates (supervisor)"| REV["Code Reviewer (employee)"]
-  EL -->|"enqueue Job"| BG["Mastra background tasks (evented, durable)"]
-  BG --> REV
+  EL -->|"review-build / sub-agent"| REV["Code Reviewer (employee)"]
+  EL -->|"runCodeReviewJob (sync)"| JR["jobRunner"]
+  JR --> REV
   REV -->|"structuredOutput: ReviewVerdict"| EL
   EL -->|"D+ report incl. verdict"| OP
 
@@ -76,13 +76,13 @@ flowchart TB
   end
   EL -.-> obs
   REV -.-> obs
-  BG -.-> obs
+  JR -.-> obs
 
   subgraph store [LibSQL .mastra/ (gitignored)]
-    JOBS["jobRegistry / JobRecord (projection over runs)"]
+    JOBS["jobRegistry / JobRecord"]
     RUNS["Mastra run + memory state"]
   end
-  BG --> store
+  JR --> JOBS
   JOBS -. "links Issue/WorkItem ↔ mastraRunId" .- RUNS
 ```
 
@@ -97,7 +97,7 @@ branch. Each Job runs in its own memory thread (supervisor memory isolation).
 | 2 | Nouns | Keep **Issue / WorkItem / Job** distinct; document in `CONTEXT.md` | Public identity vs private lifecycle vs delegated task |
 | 3 | Build vs reuse | **Framework-first** — reuse Mastra; thin domain layer only | Don't hand-roll worker/DB Mastra already ships; new `framework-first` rule |
 | 4 | Delegation | **Mastra supervisor agents** (not `.network()`, not custom tool) | Current recommended pattern; hooks + memory isolation |
-| 5 | Execution | **Async via Mastra background tasks**; no custom worker/queue | Durable, evented, crash-resilient out of the box |
+| 5 | Execution | **Synchronous** `jobRunner` for interactive use; Mastra background tasks **deferred** (test-gated when revived) | Background queue hung in gateway — no worker drained pubsub; sync path is reliable |
 | 6 | Job store | **`jobRegistry`/`JobRecord` projection over Mastra runs** in LibSQL | Owns domain semantics; not a competing engine |
 | 7 | Trigger | EL **auto-delegates review on green** via `streamUntilIdle` | Agentic feel; folds verdict into D+ report; non-blocking |
 | 8 | Guardrail | **No forcing guardrail**; non-correcting **`review.missing`** signal | Test real delegation, not a deterministic fallback; detect, don't paper over |
@@ -114,9 +114,10 @@ branch. Each Job runs in its own memory thread (supervisor memory isolation).
 ## Testing the north star (honoring zero-secret CI)
 
 - **CI (deterministic, no secrets):** integration test of the **delegation machinery** with a
-  controlled model — supervisor delegates → background Job created → Code Reviewer runs →
-  `structuredOutput` verdict → telemetry (`job.delegated`/`job.completed`) → verdict in report. Tests
-  that *when the agent delegates, the agentic plumbing works*.
+  controlled model — `review-build` → `JobRecord` created → Code Reviewer runs synchronously →
+  `structuredOutput` verdict → telemetry (`job.delegated`/`job.started`/`job.completed`) → verdict
+  in report. Lifecycle invariant: jobs never left stuck in `queued`. Gateway `jobs`/`job` commands
+  tested. Harness boot smoke test via `createMastraHarness`.
 - **Local-only (real model):** an **eval** asserting the EL *chooses* to delegate the review on a
   green build, verified **via observability** (the trace shows the delegation). This is the genuine
   north-star behavioral metric; live LLM calls are local-only per the secret-handling rule.
@@ -137,9 +138,8 @@ branch. Each Job runs in its own memory thread (supervisor memory isolation).
   are captured, correlated, redacted, and queryable; gitignored storage only.
 
 ### Slice 2 — Job system
-- `src/engineering/jobRegistry.ts` (`JobRecord` envelope + kind→zod-payload map) as a projection over
-  Mastra runs in LibSQL.
-- Mastra background tasks for execution/durability.
+- `src/engineering/jobRegistry.ts` (`JobRecord` envelope + kind→zod-payload map) in LibSQL.
+- `src/engineering/jobRunner.ts` — synchronous execution for interactive gateway (background deferred).
 - `jobs` / `job #N` gateway commands.
 - **Acceptance:** a delegated task persists a `JobRecord` linked to its WorkItem/Issue and `mastraRunId`,
   with status lifecycle and typed `(input, output)`.
@@ -189,7 +189,8 @@ branch. Each Job runs in its own memory thread (supervisor memory isolation).
 
 ## Related
 - [docs/phase-3-engineering-department.md](./phase-3-engineering-department.md)
+- [delegation rework](./phase-4-delegation-rework.md)
 - [grill notes](./prds/phase-4-delegation-jobs.grill.md)
 - [CONTEXT.md](../CONTEXT.md)
 - [init.md Phase 4](../init.md)
-- Mastra: supervisor agents, background tasks, pubsub, observability (installed `@mastra/core@1.46.0`)
+- Mastra: supervisor agents, observability (installed `@mastra/core@1.46.0`); background tasks deferred

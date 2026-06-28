@@ -23,7 +23,7 @@ telemetry, and eval-ready records. See [phase-4 north star](../phase-4-delegatio
 ## Job system (Slice 2)
 - `JobRecord` envelope + per-kind zod payload (`code-review` → `reviewVerdictSchema`).
 - `jobRegistry` in `.mastra/jobs.db` (LibSQL), projection linked to Mastra `mastraRunId`.
-- `jobRunner` over Mastra `backgroundTaskManager` (async, durable).
+- `jobRunner` — **synchronous** execution for interactive gateway (Mastra background tasks deferred; see [rework](../phase-4-delegation-rework.md)).
 - Gateway commands: `jobs`, `job #N`.
 
 ## Agentic delegation (Slice 3)
@@ -35,8 +35,8 @@ telemetry, and eval-ready records. See [phase-4 north star](../phase-4-delegatio
 - Daemon forwards job-completion headlines to connected clients.
 
 ## Verification (Slice 4)
-- CI integration test: delegation machinery with controlled model (zero secrets).
-- Local-only `npm run eval:delegation`: real EL chooses to delegate (observability assertion).
+- CI integration test: delegation machinery with controlled model (zero secrets); lifecycle invariant (never stuck `queued`); gateway `jobs`/`job` commands; harness boot smoke test.
+- Local-only `npm run eval:delegation`: observability assertion (`job.delegated`, `job.started`, `job.completed`).
 
 # Acceptance Criteria
 
@@ -51,7 +51,7 @@ telemetry, and eval-ready records. See [phase-4 north star](../phase-4-delegatio
 
 # Technical Notes
 
-- Reuse Mastra `@mastra/core@1.46.0`: supervisor agents, background tasks, LibSQL storage.
+- Reuse Mastra `@mastra/core@1.46.0`: supervisor agents, LibSQL storage. Background tasks deferred for job execution (see [rework](../phase-4-delegation-rework.md)).
 - Thin anti-corruption wrappers in `src/engineering/jobRunner.ts`, `src/observability/`.
 - Harness-internal work ships via Cursor/operator to `main`, not through `agent:build`.
 

@@ -127,7 +127,7 @@ Requires live API keys — **not run in CI**:
 npm run eval:delegation
 ```
 
-Asserts delegation machinery via observability (`job.delegated`, `job.completed`) and `jobRegistry`.
+Asserts delegation machinery via observability (`job.delegated`, `job.started`, `job.completed`) and `jobRegistry`. Jobs run synchronously (no background queue).
 
 See [docs/phase-2-engineering-loop.md](./phase-2-engineering-loop.md) for the north star and architecture.
 
