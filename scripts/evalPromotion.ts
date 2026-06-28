@@ -70,6 +70,7 @@ async function main() {
   const config = loadConfig();
   requireOpenAiKey(config);
 
+  const harnessRoot = process.cwd();
   const dir = mkdtempSync(join(tmpdir(), "michael-os-eval-promo-"));
   try {
     const evalConfig = {
@@ -84,7 +85,7 @@ async function main() {
     mkdirSync(join(worktreePath, "docs"), { recursive: true });
     writeFileSync(
       join(worktreePath, "docs", "eval-clean.md"),
-      "# Clean eval doc\nNo harness changes.\n",
+      "# Eval promotion path\n\nDocuments the local eval:promotion smoke test (docs-only change).\n",
     );
     writeFileSync(
       join(worktreePath, "package.json"),
@@ -105,7 +106,7 @@ async function main() {
     const jobRunner = createJobRunner({ jobRegistry, observability });
     const qaEngineerAgent = createQaEngineerAgent(
       evalConfig.defaultReviewModel,
-      repoPath,
+      harnessRoot,
     );
 
     let prCounter = 0;
@@ -145,8 +146,25 @@ async function main() {
 
     const prdPath = join(dir, "eval.md");
     const acceptancePath = join(dir, "eval.test.ts");
-    writeFileSync(prdPath, "# Eval PRD\nAdd docs/eval-clean.md only.\n");
-    writeFileSync(acceptancePath, "test('eval clean', () => {})");
+    writeFileSync(
+      prdPath,
+      "# Eval PRD\n\nAdd `docs/eval-clean.md` with a short description of the eval promotion path.\n",
+    );
+    writeFileSync(
+      acceptancePath,
+      `import { describe, it, expect } from "vitest";
+import { readFileSync, existsSync } from "node:fs";
+import { join } from "node:path";
+
+describe("eval clean promote", () => {
+  it("documents the eval promotion path", () => {
+    const path = join(process.cwd(), "docs", "eval-clean.md");
+    expect(existsSync(path)).toBe(true);
+    expect(readFileSync(path, "utf-8")).toContain("eval promotion");
+  });
+});
+`,
+    );
 
     ctx.currentWorkItem = upsertWorkItem(evalConfig.stateDir, {
       id: "eval-clean-promote",
@@ -167,7 +185,16 @@ async function main() {
       runDir: dir,
       resultPath: join(dir, "result.md"),
       worktreePath,
-      gitDiff: "diff --git a/docs/eval-clean.md b/docs/eval-clean.md\n",
+      gitDiff: `diff --git a/docs/eval-clean.md b/docs/eval-clean.md
+new file mode 100644
+index 0000000..1111111
+--- /dev/null
++++ b/docs/eval-clean.md
+@@ -0,0 +1,3 @@
++# Eval promotion path
++
++Documents the local eval:promotion smoke test (docs-only change).
+`,
       changedFiles: ["docs/eval-clean.md"],
       acceptanceHash: "eval-promo-hash",
       manifestPath: join(dir, "manifest.json"),
@@ -180,6 +207,7 @@ async function main() {
 
     const tools = createEngineeringTools(ctx);
 
+    console.error("eval:promotion — running verify-build (5 gates, real model)…");
     const verify = (await tools.verifyBuild.execute!(
       { slug: "eval-clean-promote" },
       {} as never,
@@ -190,6 +218,7 @@ async function main() {
     }
 
     grantApproval(ctx.approval, "stage-implementation");
+    console.error("eval:promotion — staging…");
     const staged = (await tools.stageImplementationTool.execute!(
       { commitMessage: "docs: eval clean" },
       {} as never,
@@ -200,6 +229,7 @@ async function main() {
     }
 
     grantApproval(ctx.approval, "promote");
+    console.error("eval:promotion — promoting…");
     const promoted = (await tools.promoteTool.execute!(
       { commitMessage: "docs: eval clean promote" },
       {} as never,
@@ -230,6 +260,11 @@ async function main() {
     );
 
     if (!passed) process.exit(1);
+
+    await observability.close();
+    await jobRegistry.close();
+    await promotionRegistry.close();
+    process.exit(0);
   } finally {
     rmSync(dir, { recursive: true, force: true });
   }

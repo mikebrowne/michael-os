@@ -36,6 +36,10 @@ diff --git a/docs/readme.md b/docs/readme.md
 +# docs only
 `;
 
+function logStep(message: string): void {
+  console.error(`eval:gates — ${message}`);
+}
+
 async function main() {
   const config = loadConfig();
   requireOpenAiKey(config);
@@ -50,7 +54,11 @@ async function main() {
 
     results["seeded-vulnerability-caught"] =
       scanPermissionDiff(SEEDED_VULN_DIFF).length > 0;
+    logStep(
+      `permission scan on seeded vuln: ${results["seeded-vulnerability-caught"] ? "caught" : "missed"}`,
+    );
 
+    logStep("security review on seeded vuln (model)…");
     const securityVerdict = await runSecurityReview(agent, {
       gitDiff: SEEDED_VULN_DIFF,
       prdMarkdown: prd,
@@ -61,6 +69,7 @@ async function main() {
       results["seeded-vulnerability-caught"] ||
       securityVerdict.decision !== "approve";
 
+    logStep("code review on seeded defect (model)…");
     const defectVerdict = await runCodeReview(agent, {
       gitDiff: SEEDED_DEFECT_DIFF,
       prdMarkdown: prd,
@@ -69,6 +78,7 @@ async function main() {
     });
     results["seeded-defect-caught"] = defectVerdict.decision !== "approve";
 
+    logStep("security + code review on clean diff (model)…");
     const cleanSecurity = await runSecurityReview(agent, {
       gitDiff: CLEAN_DIFF,
       prdMarkdown: prd,
@@ -110,12 +120,13 @@ async function main() {
     ]);
     remediation = { ...remediation, attemptCount: 3 };
     results["remediation-converges-and-halts"] = isRemediationCapReached(remediation);
+    logStep("deterministic triage + remediation cap checks done");
 
     writeFileSync(join(dir, "eval-gates-results.json"), JSON.stringify(results, null, 2));
 
     const passed = Object.values(results).every(Boolean);
     console.log(JSON.stringify({ passed, results }, null, 2));
-    if (!passed) process.exit(1);
+    process.exit(passed ? 0 : 1);
   } finally {
     rmSync(dir, { recursive: true, force: true });
   }
