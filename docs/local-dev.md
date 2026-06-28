@@ -134,6 +134,20 @@ npm run eval:delegation
 
 Asserts delegation machinery via observability (`job.delegated`, `job.started`, `job.completed`) and `jobRegistry`. Jobs run synchronously (no background queue).
 
+### Local-only promotion + gate evals (Phase 5)
+
+Requires live API keys — **not run in CI**:
+
+```bash
+npm run eval:promotion
+npm run eval:gates
+```
+
+- `eval:promotion` — stages, verifies, and promotes a clean docs-only change against a throwaway bare git remote (fake `gh`; real model for verification gates).
+- `eval:gates` — judgment recall/precision checks: seeded vulnerability, seeded defect, no false block on clean diff, triage routing, remediation cap halt.
+
+See [docs/phase-5-staging-review-promotion.md](./phase-5-staging-review-promotion.md) for the north star.
+
 See [docs/phase-2-engineering-loop.md](./phase-2-engineering-loop.md) for the north star and architecture.
 
 ## Run logs

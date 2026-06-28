@@ -20,7 +20,9 @@
     "gateway": "tsx scripts/gateway.ts",
     "gateway:daemon": "tsx scripts/gatewayDaemon.ts",
     "chat": "tsx scripts/chatClient.ts",
-    "eval:delegation": "tsx scripts/evalDelegation.ts"
+    "eval:delegation": "tsx scripts/evalDelegation.ts",
+    "eval:promotion": "tsx scripts/evalPromotion.ts",
+    "eval:gates": "tsx scripts/evalGates.ts"
   },
   "dependencies": {
     "@cursor/sdk": "^1.0.22",
