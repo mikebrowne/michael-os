@@ -1,4 +1,5 @@
 import { createServer, type Server, type Socket } from "node:net";
+import { execSync } from "node:child_process";
 import { mkdirSync, readFileSync, writeFileSync, existsSync } from "node:fs";
 import { join } from "node:path";
 import { loadConfig, requireOpenAiKey } from "../config/loadConfig.js";
@@ -19,6 +20,12 @@ import {
   memory,
 } from "../mastra/index.js";
 import { jobNotificationBus, type JobCompletionEvent } from "../engineering/jobRunner.js";
+import {
+  emitHarnessBackUp,
+  formatRestartLifecycleMessage,
+  restartLifecycleBus,
+  type RestartLifecycleEvent,
+} from "./restart.js";
 
 export const DEFAULT_GATEWAY_HOST = "127.0.0.1";
 export const DEFAULT_GATEWAY_PORT = 47821;
@@ -31,6 +38,18 @@ export type GatewayDaemonOptions = {
 };
 
 const connectedSockets = new Set<Socket>();
+
+function resolveHeadCommitSha(repoPath: string): string {
+  try {
+    return execSync("git rev-parse HEAD", {
+      encoding: "utf-8",
+      cwd: repoPath,
+      stdio: "pipe",
+    }).trim();
+  } catch {
+    return "unknown";
+  }
+}
 
 function broadcastToClients(message: string): void {
   for (const socket of connectedSockets) {
@@ -91,11 +110,17 @@ export async function createGatewayDaemonRuntime(
     broadcastToClients(`\n${event.headline}\n`);
   });
 
+  restartLifecycleBus.on("lifecycle", (event: RestartLifecycleEvent) => {
+    broadcastToClients(`\n${formatRestartLifecycleMessage(event)}\n`);
+  });
+
+  emitHarnessBackUp(resolveHeadCommitSha(repoPath));
+
   const server = createServer((socket: Socket) => {
     connectedSockets.add(socket);
     let buffer = "";
     socket.write("MichaelOS Engineering Gateway (daemon)\n");
-    socket.write("Commands: exit | resume #N | list | jobs | job <id> | health\n\n");
+    socket.write("Commands: exit | resume #N | list | jobs | job <id> | health | promotions | restart\n\n");
 
     socket.on("close", () => {
       connectedSockets.delete(socket);

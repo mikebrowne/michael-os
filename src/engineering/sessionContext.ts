@@ -21,6 +21,8 @@ import { createJobRegistry } from "./jobRegistry.js";
 import type { JobRunner } from "./jobRunner.js";
 import type { PromotionRegistry } from "./promotionRegistry.js";
 import { createPromotionRegistry } from "./promotionRegistry.js";
+import type { RestartGate } from "../gateway/restart.js";
+import { createRestartGate } from "../gateway/restart.js";
 
 export type EngineeringSessionContext = {
   config: AppConfig;
@@ -37,6 +39,7 @@ export type EngineeringSessionContext = {
   jobRegistry: JobRegistry;
   jobRunner?: JobRunner;
   promotionRegistry: PromotionRegistry;
+  restartGate: RestartGate;
   ghRunner: GhRunner;
   gitRunner: GitRunner;
 };
@@ -93,6 +96,7 @@ export function createEngineeringSessionContext(
     jobRegistry?: JobRegistry;
     jobRunner?: JobRunner;
     promotionRegistry?: PromotionRegistry;
+    restartGate?: RestartGate;
   },
 ): EngineeringSessionContext {
   const repoPath = options?.repoPath ?? process.cwd();
@@ -130,6 +134,7 @@ export function createEngineeringSessionContext(
     jobRunner: options?.jobRunner,
     promotionRegistry:
       options?.promotionRegistry ?? createPromotionRegistry(config.mastraDir),
+    restartGate: options?.restartGate ?? createRestartGate(),
     ghRunner: options?.ghRunner ?? defaultGhRunner,
     gitRunner: options?.gitRunner ?? createDefaultGitRunner(repoPath),
   };

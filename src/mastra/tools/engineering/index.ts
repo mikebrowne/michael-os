@@ -1,6 +1,7 @@
 import { createTool } from "@mastra/core/tools";
 import { z } from "zod";
-import { writeFileSync, readFileSync, existsSync } from "node:fs";
+import { writeFileSync, readFileSync, existsSync, mkdirSync } from "node:fs";
+import { join } from "node:path";
 import type { EngineeringSessionContext } from "../../../engineering/sessionContext.js";
 import {
   createWorkItem,
@@ -22,6 +23,10 @@ import {
 } from "../../../engineering/approvalGate.js";
 import { shipDocs, shipImplementation } from "../../../engineering/ship.js";
 import { stageBuild, promoteStagedChange, rollbackPromotion } from "../../../engineering/staging.js";
+import {
+  executeControlledRestart,
+  promotionTouchesHarness,
+} from "../../../gateway/restart.js";
 import { requireOpenAiKey, requireCursorKey } from "../../../config/loadConfig.js";
 import { createRunLogger } from "../../../logging/runLogger.js";
 import { randomUUID } from "node:crypto";
@@ -219,12 +224,49 @@ export function createEngineeringTools(ctx: EngineeringSessionContext) {
 
     ctx.telemetry.logShipDecision(true, "promote");
 
+    let message = `Promoted as #${promotion.promotionNumber} (commit ${promotion.commitSha.slice(0, 8)})`;
+    if (promotionTouchesHarness(buildResult.changedFiles)) {
+      message +=
+        "\n\nThis promotion touched src/** — operator should restart the harness (`restart` command) after approval.";
+    }
+
     return {
-      message: `Promoted as #${promotion.promotionNumber} (commit ${promotion.commitSha.slice(0, 8)})`,
+      message,
       promoted: true,
       promotionNumber: promotion.promotionNumber,
       commitSha: promotion.commitSha,
+      suggestRestart: promotionTouchesHarness(buildResult.changedFiles),
     };
+  }
+
+  async function executeRestartCore() {
+    const markerPath = join(ctx.config.mastraDir, "restart-marker.json");
+    await executeControlledRestart({
+      restartGate: ctx.restartGate,
+      persistState: () => {
+        mkdirSync(ctx.config.mastraDir, { recursive: true });
+        writeFileSync(
+          markerPath,
+          `${JSON.stringify({ drained: true, at: new Date().toISOString() }, null, 2)}\n`,
+          "utf-8",
+        );
+      },
+      flushTelemetry: async () => {
+        await ctx.observability.close();
+        await ctx.jobRegistry.close();
+        await ctx.promotionRegistry.close();
+      },
+      getHeadCommitSha: () => {
+        const result = ctx.gitRunner(["git", "rev-parse", "HEAD"]);
+        if (result.exitCode !== 0) return "unknown";
+        return result.stdout.trim();
+      },
+      exitProcess: (code) => {
+        process.exit(code);
+      },
+    });
+
+    return { message: "Restart initiated.", restarting: true };
   }
 
   async function executeRollbackCore(input: RollbackInput) {
@@ -905,6 +947,28 @@ export function createEngineeringTools(ctx: EngineeringSessionContext) {
     },
   });
 
+  const restartTool = createTool({
+    id: "restart",
+    description:
+      "Drain in-flight jobs, persist state, and restart the harness. Requires operator approval.",
+    inputSchema: z.object({}),
+    outputSchema: z.object({
+      needsApproval: z.boolean().optional(),
+      message: z.string(),
+      restarting: z.boolean().optional(),
+    }),
+    execute: async () => {
+      if (!consumeApproval(ctx.approval, "restart")) {
+        requestApproval(ctx.approval, "restart", {});
+        return {
+          needsApproval: true,
+          message: needsApprovalMessage("restart"),
+        };
+      }
+      return executeRestartCore();
+    },
+  });
+
   async function replayDangerousTool(): Promise<Record<string, unknown>> {
     const pending = ctx.approval.pending;
     if (!pending) {
@@ -931,6 +995,9 @@ export function createEngineeringTools(ctx: EngineeringSessionContext) {
     if (toolId === "rollback") {
       return executeRollbackCore(args as RollbackInput);
     }
+    if (toolId === "restart") {
+      return executeRestartCore();
+    }
     throw new Error(`Unknown dangerous tool: ${toolId}`);
   }
 
@@ -950,6 +1017,7 @@ export function createEngineeringTools(ctx: EngineeringSessionContext) {
     stageImplementationTool,
     promoteTool,
     rollbackTool,
+    restartTool,
     replayDangerousTool,
   };
 }

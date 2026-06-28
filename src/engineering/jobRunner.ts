@@ -5,6 +5,7 @@ import type { CodeReviewJobInput, BuildVerificationJobInput } from "./jobKinds.j
 import type { ObservabilityStore } from "../observability/observabilityStore.js";
 import type { ReviewVerdict } from "./review.js";
 import type { BuildVerificationVerdict } from "./buildVerification.js";
+import type { RestartGate } from "../gateway/restart.js";
 
 export type JobCompletionEvent = {
   jobId: string;
@@ -20,6 +21,7 @@ export const jobNotificationBus = new EventEmitter();
 export type JobRunnerDeps = {
   jobRegistry: JobRegistry;
   observability: ObservabilityStore;
+  restartGate?: RestartGate;
 };
 
 export type RunBuildVerificationJobOptions = {
@@ -75,10 +77,27 @@ export class JobRunner {
     jobNotificationBus.emit("job.completed", payload);
   }
 
+  private assertJobAllowed(): void {
+    if (this.deps.restartGate && !this.deps.restartGate.allowNewJob()) {
+      throw new Error("Harness is draining for restart; new jobs refused.");
+    }
+  }
+
+  private trackJobStart(): void {
+    this.deps.restartGate?.onJobStart();
+  }
+
+  private trackJobEnd(): void {
+    this.deps.restartGate?.onJobEnd();
+  }
+
   async runCodeReviewJob(options: RunCodeReviewJobOptions): Promise<{
     jobId: string;
     verdict: ReviewVerdict;
   }> {
+    this.assertJobAllowed();
+    this.trackJobStart();
+    try {
     const traceId = options.traceId ?? randomUUID();
     const runId = randomUUID();
     const delegatedTo = options.delegatedTo ?? "qa-engineer";
@@ -198,12 +217,18 @@ export class JobRunner {
       });
       throw error;
     }
+    } finally {
+      this.trackJobEnd();
+    }
   }
 
   async runBuildVerificationJob(options: RunBuildVerificationJobOptions): Promise<{
     jobId: string;
     verdict: BuildVerificationVerdict;
   }> {
+    this.assertJobAllowed();
+    this.trackJobStart();
+    try {
     const traceId = options.traceId ?? randomUUID();
     const runId = randomUUID();
     const delegatedTo = options.delegatedTo ?? "qa-engineer";
@@ -332,6 +357,9 @@ export class JobRunner {
         issueNumber: options.issueNumber,
       });
       throw error;
+    }
+    } finally {
+      this.trackJobEnd();
     }
   }
 }

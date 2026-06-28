@@ -73,6 +73,7 @@ export function createMastraHarness(
   const jobRunner = createJobRunner({
     jobRegistry,
     observability: observabilityStore,
+    restartGate: engineeringSession.restartGate,
   });
 
   engineeringSession.jobRunner = jobRunner;

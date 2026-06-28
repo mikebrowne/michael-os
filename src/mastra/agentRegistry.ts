@@ -49,6 +49,7 @@ export const AGENT_REGISTRY: AgentRegistration[] = [
       "stage-implementation",
       "promote",
       "rollback",
+      "restart",
     ],
   },
   {

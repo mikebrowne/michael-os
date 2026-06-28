@@ -261,6 +261,12 @@ export async function processGatewayLine(
     return { output };
   }
 
+  if (trimmed.toLowerCase() === "restart") {
+    requestApproval(runtime.ctx.approval, "restart", {});
+    output.push(`\nengineering-lead> ${needsApprovalMessage("restart")}\n`);
+    return { output };
+  }
+
   try {
     const text = await agentGenerate(runtime, trimmed);
     if (runtime.ctx.approval.pending) {

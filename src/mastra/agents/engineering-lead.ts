@@ -100,6 +100,7 @@ export function createEngineeringLeadAgent(
       stageImplementation: tools.stageImplementationTool,
       promote: tools.promoteTool,
       rollback: tools.rollbackTool,
+      restart: tools.restartTool,
     },
     "management",
   );

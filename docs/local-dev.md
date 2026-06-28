@@ -82,7 +82,9 @@ Health check (with daemon running):
 echo health | nc 127.0.0.1 47821
 ```
 
-### launchd service (Mac)
+### launchd service (Mac) — controlled restart
+
+Phase 5 adds a **controlled restart**: the operator runs `restart` (or the EL tool after YES). The daemon drains in-flight jobs, persists state, broadcasts lifecycle messages (`restarting` → `down` → `back up` on relaunch), and exits with sentinel code **75**. **launchd** relaunches the gateway automatically when `KeepAlive` is set.
 
 1. Copy and edit the plist — replace `REPO_ROOT_PLACEHOLDER` with your repo absolute path:
 
@@ -113,7 +115,10 @@ Requires `OPENAI_API_KEY`. Build and ship steps also require `CURSOR_API_KEY` wh
 - `resume #N` — resume by GitHub issue number
 - `jobs` — list recent delegated jobs
 - `job <id>` — show job detail (input, output, trace ids)
-- `YES` / `NO` — approve or cancel dangerous tools (`run-build`, `ship-docs`, `ship-implementation`)
+- `YES` / `NO` — approve or cancel dangerous tools (`run-build`, `ship-docs`, `ship-implementation`, `stage-implementation`, `promote`, `rollback`, `restart`)
+- `promotions` / `promotion #N` — inspect the promotion ledger
+- `rollback #N` — revert a promoted change (requires YES)
+- `restart` — controlled harness restart after drain (requires YES; launchd relaunches the daemon)
 
 Planning artifacts land in `docs/prds/` (configurable via `PRDS_DIR`). Work-item state is stored under `.mastra/state/` (gitignored). Jobs and traces live in `.mastra/jobs.db` and `.mastra/traces.db` (gitignored). Conversation memory is stored in `.mastra/mastra.db` (gitignored). Observability JSONL is under `.logs/observability.jsonl` (gitignored). Set `OBSERVABILITY_LEVEL` (`silent` | `minimal` | `standard` | `verbose` | `debug`) in `.env` to control capture verbosity.
 
