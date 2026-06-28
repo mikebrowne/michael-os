@@ -9,10 +9,16 @@ import {
 import {
   needsApprovalMessage,
   parseYesNo,
+  requestApproval,
 } from "../engineering/approvalGate.js";
 import { logApprovalAudit } from "../engineering/approvalAudit.js";
 import { getWorkItemByIssue } from "../engineering/workItem.js";
 import { rehydrateBuildFromWorkItem } from "../engineering/buildManifest.js";
+import { applyNoRoute, parseNoWithRoute } from "../engineering/noRouting.js";
+import {
+  formatPromotionDetail,
+  formatPromotionListLine,
+} from "./promotionFormatting.js";
 import { createEngineeringTools } from "../mastra/tools/engineering/index.js";
 import type { AppConfig } from "../config/loadConfig.js";
 import {
@@ -61,7 +67,8 @@ export async function processGatewayLine(
   }
 
   const yesNo = parseYesNo(trimmed);
-  if (yesNo && runtime.ctx.approval.pending) {
+  const noWithRoute = parseNoWithRoute(trimmed);
+  if ((yesNo || noWithRoute) && runtime.ctx.approval.pending) {
     if (yesNo === "yes") {
       const toolId = runtime.ctx.approval.pending.toolId;
       const pendingArgs = runtime.ctx.approval.pending.args;
@@ -88,19 +95,41 @@ export async function processGatewayLine(
       );
       return { output };
     }
-    const deniedToolId = runtime.ctx.approval.pending.toolId;
-    const deniedArgs = runtime.ctx.approval.pending.args;
-    logApprovalAudit(runtime.ctx.observability, runtime.ctx.telemetry, {
-      toolId: deniedToolId,
-      approved: false,
-      workItemSlug: runtime.ctx.currentWorkItem?.slug,
-      issueNumber: runtime.ctx.currentWorkItem?.issueNumber,
-      args: deniedArgs,
-    });
-    runtime.ctx.approval.pending = undefined;
-    runtime.ctx.telemetry.logApprovalDecision(false, deniedToolId);
-    output.push("\nengineering-lead> Cancelled.\n");
-    return { output };
+    if (noWithRoute || yesNo === "no") {
+      const deniedToolId = runtime.ctx.approval.pending.toolId;
+      const deniedArgs = runtime.ctx.approval.pending.args;
+      const route = noWithRoute?.route ?? "fix";
+
+      logApprovalAudit(runtime.ctx.observability, runtime.ctx.telemetry, {
+        toolId: deniedToolId,
+        approved: false,
+        workItemSlug: runtime.ctx.currentWorkItem?.slug,
+        issueNumber: runtime.ctx.currentWorkItem?.issueNumber,
+        args: { ...deniedArgs, noRoute: route },
+      });
+      runtime.ctx.approval.pending = undefined;
+      runtime.ctx.telemetry.logApprovalDecision(false, deniedToolId);
+
+      if (deniedToolId === "promote" && runtime.ctx.currentWorkItem) {
+        const routed = await applyNoRoute({
+          route,
+          workItem: runtime.ctx.currentWorkItem,
+          stateDir: runtime.config.stateDir,
+          githubRepo: runtime.ctx.githubRepo,
+          ghRunner: runtime.ctx.ghRunner,
+        });
+        runtime.ctx.currentWorkItem = routed.workItem;
+        output.push(`\nengineering-lead> ${routed.message}\n`);
+      } else {
+        output.push("\nengineering-lead> Cancelled.\n");
+      }
+      await refreshGatewayWorkingMemory(
+        runtime.memory,
+        runtime.memorySession,
+        runtime.ctx.currentWorkItem,
+      );
+      return { output };
+    }
   }
 
   if (trimmed.toLowerCase() === "list") {
@@ -181,6 +210,54 @@ export async function processGatewayLine(
       return { output };
     }
     output.push(`\n${formatJobDetail(job)}\n`);
+    return { output };
+  }
+
+  if (trimmed.toLowerCase() === "promotions") {
+    const promotions = await runtime.ctx.promotionRegistry.listPromotions({
+      limit: 20,
+    });
+    if (promotions.length === 0) {
+      output.push("\nNo promotions recorded.\n");
+      return { output };
+    }
+    output.push("\nPromotions:\n");
+    for (const record of promotions) {
+      output.push(`${formatPromotionListLine(record)}\n`);
+    }
+    return { output };
+  }
+
+  const promotionMatch = trimmed.match(/^promotion\s+#?(\d+)$/i);
+  if (promotionMatch) {
+    const promotionNumber = Number(promotionMatch[1]);
+    const record = await runtime.ctx.promotionRegistry.getPromotionByNumber(
+      promotionNumber,
+    );
+    if (!record) {
+      output.push(`\nNo promotion #${promotionNumber}.\n`);
+      return { output };
+    }
+    output.push(`\n${formatPromotionDetail(record)}\n`);
+    return { output };
+  }
+
+  const rollbackMatch = trimmed.match(/^rollback\s+#?(\d+)$/i);
+  if (rollbackMatch) {
+    const promotionNumber = Number(rollbackMatch[1]);
+    const record = await runtime.ctx.promotionRegistry.getPromotionByNumber(
+      promotionNumber,
+    );
+    if (!record) {
+      output.push(`\nNo promotion #${promotionNumber} to roll back.\n`);
+      return { output };
+    }
+    if (record.status === "rolled-back") {
+      output.push(`\nPromotion #${promotionNumber} is already rolled back.\n`);
+      return { output };
+    }
+    requestApproval(runtime.ctx.approval, "rollback", { promotionNumber });
+    output.push(`\nengineering-lead> ${needsApprovalMessage("rollback")}\n`);
     return { output };
   }
 

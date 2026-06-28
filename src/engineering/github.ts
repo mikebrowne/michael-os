@@ -134,6 +134,27 @@ export function buildAddPrLabelCommand(
   ];
 }
 
+export function buildClosePrCommand(repo: string, prNumber: number): string[] {
+  return ["gh", "pr", "close", String(prNumber), "--repo", repo];
+}
+
+export function buildAddIssueLabelCommand(
+  repo: string,
+  issueNumber: number,
+  label: string,
+): string[] {
+  return [
+    "gh",
+    "issue",
+    "edit",
+    String(issueNumber),
+    "--repo",
+    repo,
+    "--add-label",
+    label,
+  ];
+}
+
 export async function createPullRequest(
   runner: GhRunner,
   repo: string,
@@ -179,6 +200,56 @@ export async function getPrChecks(
     throw new Error(result.stderr || result.stdout || "gh pr checks failed");
   }
   return JSON.parse(result.stdout) as PrCheckStatus[];
+}
+
+export async function convertPrToDraft(
+  runner: GhRunner,
+  repo: string,
+  prNumber: number,
+): Promise<void> {
+  const cmd = buildConvertPrToDraftCommand(repo, prNumber);
+  const result = await runner(cmd.slice(1));
+  if (result.exitCode !== 0) {
+    throw new Error(result.stderr || result.stdout || "gh pr ready --undo failed");
+  }
+}
+
+export async function addPrLabel(
+  runner: GhRunner,
+  repo: string,
+  prNumber: number,
+  label: string,
+): Promise<void> {
+  const cmd = buildAddPrLabelCommand(repo, prNumber, label);
+  const result = await runner(cmd.slice(1));
+  if (result.exitCode !== 0) {
+    throw new Error(result.stderr || result.stdout || "gh pr edit --add-label failed");
+  }
+}
+
+export async function closePullRequest(
+  runner: GhRunner,
+  repo: string,
+  prNumber: number,
+): Promise<void> {
+  const cmd = buildClosePrCommand(repo, prNumber);
+  const result = await runner(cmd.slice(1));
+  if (result.exitCode !== 0) {
+    throw new Error(result.stderr || result.stdout || "gh pr close failed");
+  }
+}
+
+export async function addIssueLabel(
+  runner: GhRunner,
+  repo: string,
+  issueNumber: number,
+  label: string,
+): Promise<void> {
+  const cmd = buildAddIssueLabelCommand(repo, issueNumber, label);
+  const result = await runner(cmd.slice(1));
+  if (result.exitCode !== 0) {
+    throw new Error(result.stderr || result.stdout || "gh issue edit --add-label failed");
+  }
 }
 
 export async function createIssue(

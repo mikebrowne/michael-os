@@ -21,7 +21,7 @@ import {
   grantApproval,
 } from "../../../engineering/approvalGate.js";
 import { shipDocs, shipImplementation } from "../../../engineering/ship.js";
-import { stageBuild, promoteStagedChange } from "../../../engineering/staging.js";
+import { stageBuild, promoteStagedChange, rollbackPromotion } from "../../../engineering/staging.js";
 import { requireOpenAiKey, requireCursorKey } from "../../../config/loadConfig.js";
 import { createRunLogger } from "../../../logging/runLogger.js";
 import { randomUUID } from "node:crypto";
@@ -56,6 +56,7 @@ type ShipDocsInput = { slug: string; commitMessage: string };
 type ShipImplementationInput = { commitMessage: string };
 type StageImplementationInput = { commitMessage: string; prBody?: string };
 type PromoteInput = { commitMessage: string };
+type RollbackInput = { promotionNumber: number };
 
 export function createEngineeringTools(ctx: EngineeringSessionContext) {
   async function executeRunBuildCore(input: RunBuildInput) {
@@ -223,6 +224,26 @@ export function createEngineeringTools(ctx: EngineeringSessionContext) {
       promoted: true,
       promotionNumber: promotion.promotionNumber,
       commitSha: promotion.commitSha,
+    };
+  }
+
+  async function executeRollbackCore(input: RollbackInput) {
+    const updated = await rollbackPromotion(
+      {
+        repoPath: ctx.repoPath,
+        promotionNumber: input.promotionNumber,
+      },
+      ctx.gitRunner,
+      ctx.promotionRegistry,
+    );
+
+    ctx.telemetry.logShipDecision(false, "rollback");
+
+    return {
+      message: `Rolled back promotion #${updated.promotionNumber} (revert ${updated.revertCommitSha?.slice(0, 8) ?? "unknown"})`,
+      rolledBack: true,
+      promotionNumber: updated.promotionNumber,
+      revertCommitSha: updated.revertCommitSha,
     };
   }
 
@@ -858,6 +879,32 @@ export function createEngineeringTools(ctx: EngineeringSessionContext) {
     },
   });
 
+  const rollbackTool = createTool({
+    id: "rollback",
+    description:
+      "Revert a promoted change by promotion number. Requires operator approval.",
+    inputSchema: z.object({
+      promotionNumber: z.number(),
+    }),
+    outputSchema: z.object({
+      needsApproval: z.boolean().optional(),
+      message: z.string(),
+      rolledBack: z.boolean().optional(),
+      promotionNumber: z.number().optional(),
+      revertCommitSha: z.string().optional(),
+    }),
+    execute: async (input) => {
+      if (!consumeApproval(ctx.approval, "rollback")) {
+        requestApproval(ctx.approval, "rollback", input as Record<string, unknown>);
+        return {
+          needsApproval: true,
+          message: needsApprovalMessage("rollback"),
+        };
+      }
+      return executeRollbackCore(input);
+    },
+  });
+
   async function replayDangerousTool(): Promise<Record<string, unknown>> {
     const pending = ctx.approval.pending;
     if (!pending) {
@@ -881,6 +928,9 @@ export function createEngineeringTools(ctx: EngineeringSessionContext) {
     if (toolId === "promote") {
       return executePromoteCore(args as PromoteInput);
     }
+    if (toolId === "rollback") {
+      return executeRollbackCore(args as RollbackInput);
+    }
     throw new Error(`Unknown dangerous tool: ${toolId}`);
   }
 
@@ -899,6 +949,7 @@ export function createEngineeringTools(ctx: EngineeringSessionContext) {
     shipImplementationTool,
     stageImplementationTool,
     promoteTool,
+    rollbackTool,
     replayDangerousTool,
   };
 }

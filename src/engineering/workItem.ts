@@ -16,6 +16,7 @@ export type WorkItemStage =
   | "staged"
   | "ship"
   | "blocked"
+  | "parked"
   | "done"
   | "abandoned";
 

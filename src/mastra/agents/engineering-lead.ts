@@ -99,6 +99,7 @@ export function createEngineeringLeadAgent(
       shipImplementation: tools.shipImplementationTool,
       stageImplementation: tools.stageImplementationTool,
       promote: tools.promoteTool,
+      rollback: tools.rollbackTool,
     },
     "management",
   );
