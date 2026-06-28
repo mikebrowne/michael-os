@@ -1,9 +1,12 @@
 export type AgentKind = "mastra-agent" | "external-executor" | "skill";
 
+export type AgentAuthority = "management" | "employee";
+
 export type AgentRegistration = {
   id: string;
   role: string;
   kind: AgentKind;
+  authority: AgentAuthority;
   description: string;
   model?: string;
   directChat: boolean;
@@ -17,6 +20,7 @@ export const AGENT_REGISTRY: AgentRegistration[] = [
     id: "engineering-lead",
     role: "Engineering Lead",
     kind: "mastra-agent",
+    authority: "management",
     description:
       "Orchestrates the engineering loop: grill, PRD, tests, build, review, ship.",
     directChat: true,
@@ -47,6 +51,7 @@ export const AGENT_REGISTRY: AgentRegistration[] = [
     id: "software-engineer",
     role: "Software Engineer",
     kind: "external-executor",
+    authority: "employee",
     description:
       "Writes implementation code via Cursor (runAgentBuild). Not a conversational agent.",
     directChat: false,
@@ -57,6 +62,7 @@ export const AGENT_REGISTRY: AgentRegistration[] = [
     id: "code-reviewer",
     role: "Code Reviewer",
     kind: "mastra-agent",
+    authority: "employee",
     description:
       "Reviews green builds against PRD and acceptance test. Advisory verdict before ship.",
     model: "reasoning-tier",
@@ -69,6 +75,7 @@ export const AGENT_REGISTRY: AgentRegistration[] = [
     id: "spec-planning-test",
     role: "Spec / Planning / Test",
     kind: "skill",
+    authority: "employee",
     description: "Judgment skills loaded on Engineering Lead.",
     directChat: false,
     standalone: false,

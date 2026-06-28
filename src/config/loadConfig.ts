@@ -2,6 +2,10 @@ import { readFileSync, existsSync } from "node:fs";
 import { resolve, join } from "node:path";
 import { config as loadDotenv } from "dotenv";
 import { z } from "zod";
+import {
+  parseObservabilityLevel,
+  type ObservabilityLevel,
+} from "../observability/observabilityConfig.js";
 
 const defaultConfigSchema = z.object({
   appName: z.string(),
@@ -23,6 +27,8 @@ export type AppConfig = {
   logLevel: "debug" | "info" | "warn" | "error";
   openaiApiKey?: string;
   cursorApiKey?: string;
+  observabilityLevel: ObservabilityLevel;
+  mastraDir: string;
 };
 
 const DEMO_VAULT_RELATIVE = join("examples", "demo-vault");
@@ -54,6 +60,7 @@ export function loadConfig(cwd: string = process.cwd()): AppConfig {
   const aiRunsDir = resolve(cwd, process.env.AI_RUNS_DIR?.trim() || "ai-runs");
   const prdsDir = resolve(cwd, process.env.PRDS_DIR?.trim() || join("docs", "prds"));
   const stateDir = resolve(cwd, process.env.STATE_DIR?.trim() || join(".mastra", "state"));
+  const mastraDir = resolve(cwd, process.env.MASTRA_DIR?.trim() || ".mastra");
 
   const logLevelRaw = (process.env.LOG_LEVEL ?? "info").toLowerCase();
   const logLevel = z
@@ -63,6 +70,9 @@ export function loadConfig(cwd: string = process.cwd()): AppConfig {
   const openaiApiKey = process.env.OPENAI_API_KEY?.trim() || undefined;
   const cursorApiKey = process.env.CURSOR_API_KEY?.trim() || undefined;
   const reviewModelEnv = process.env.DEFAULT_REVIEW_MODEL?.trim();
+  const observabilityLevel = parseObservabilityLevel(
+    process.env.OBSERVABILITY_LEVEL?.trim(),
+  );
 
   return {
     appName: String(merged.appName),
@@ -77,9 +87,11 @@ export function loadConfig(cwd: string = process.cwd()): AppConfig {
     aiRunsDir,
     prdsDir,
     stateDir,
+    mastraDir,
     logLevel,
     openaiApiKey,
     cursorApiKey,
+    observabilityLevel,
   };
 }
 

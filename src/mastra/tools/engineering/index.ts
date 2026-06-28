@@ -114,6 +114,18 @@ export function createEngineeringTools(ctx: EngineeringSessionContext) {
       );
     }
     ctx.lastBuildResult = buildResult;
+
+    const slug = ctx.currentWorkItem?.slug;
+    if (slug) {
+      const hasReview = await ctx.jobRegistry.hasReviewJobForWorkItem(
+        slug,
+        buildResult.acceptanceHash,
+      );
+      if (!hasReview) {
+        ctx.telemetry.logReviewMissing(slug, ctx.currentWorkItem?.issueNumber);
+      }
+    }
+
     ctx.telemetry.logShipDecision(true, "ship-implementation");
 
     const shipped = shipImplementation(
@@ -137,6 +149,68 @@ export function createEngineeringTools(ctx: EngineeringSessionContext) {
     return {
       message: `Implementation shipped: ${shipped.join(", ")}`,
       shipped: true,
+    };
+  }
+
+  async function executeReviewBuildCore(slug: string) {
+    const buildResult = tryRehydrateBuildResult(ctx);
+    if (!buildResult || !isBuildGreen(buildResult)) {
+      throw new Error("No green build to review. Run build first.");
+    }
+
+    const item = getWorkItem(ctx.config.stateDir, slug);
+    if (!item?.prdPath || !item.acceptanceTestPath) {
+      throw new Error("Work item missing PRD or acceptance test for review.");
+    }
+
+    requireOpenAiKey(ctx.config);
+    ctx.telemetry.logAgentInvoked(
+      "code-reviewer",
+      "Code Reviewer",
+      ctx.config.defaultReviewModel,
+    );
+
+    const prdMarkdown = readFileSync(item.prdPath, "utf-8");
+    const acceptanceTest = readFileSync(item.acceptanceTestPath, "utf-8");
+
+    const runReview = async () =>
+      runCodeReview(ctx.codeReviewerAgent, {
+        gitDiff: buildResult.gitDiff,
+        prdMarkdown,
+        acceptanceTest,
+        changedFiles: buildResult.changedFiles,
+      });
+
+    let verdict;
+    if (ctx.jobRunner) {
+      const result = await ctx.jobRunner.runCodeReviewJob({
+        parentWorkItem: slug,
+        issueNumber: item.issueNumber,
+        input: {
+          workItemSlug: slug,
+          issueNumber: item.issueNumber,
+          buildRunDir: buildResult.runDir,
+          acceptanceHash: buildResult.acceptanceHash,
+        },
+        executeReview: runReview,
+      });
+      verdict = result.verdict;
+    } else {
+      verdict = await runReview();
+    }
+
+    ctx.lastReviewVerdict = verdict;
+    ctx.telemetry.logReviewVerdict(
+      verdict.decision,
+      verdict.findings.length,
+    );
+
+    const report = formatReviewVerdictReport(verdict);
+    const buildReport = formatBuildChatReport(buildResult, verdict);
+    return {
+      message: `${report}\n\n--- Build summary ---\n${buildReport.headline}\n${buildReport.body}`,
+      decision: verdict.decision,
+      findingCount: verdict.findings.length,
     };
   }
 
@@ -386,7 +460,7 @@ export function createEngineeringTools(ctx: EngineeringSessionContext) {
   const reviewBuild = createTool({
     id: "review-build",
     description:
-      "Run advisory code review on the last green build (PRD + diff + acceptance test).",
+      "Run advisory code review on the last green build (PRD + diff + acceptance test). Delegates as a tracked Job.",
     inputSchema: z.object({
       slug: z.string().optional(),
     }),
@@ -396,47 +470,11 @@ export function createEngineeringTools(ctx: EngineeringSessionContext) {
       findingCount: z.number().optional(),
     }),
     execute: async (input) => {
-      const buildResult = tryRehydrateBuildResult(ctx);
-      if (!buildResult || !isBuildGreen(buildResult)) {
-        throw new Error("No green build to review. Run build first.");
-      }
-
       const slug = input.slug ?? ctx.currentWorkItem?.slug;
       if (!slug) {
         throw new Error("No work item slug for review.");
       }
-      const item = getWorkItem(ctx.config.stateDir, slug);
-      if (!item?.prdPath || !item.acceptanceTestPath) {
-        throw new Error("Work item missing PRD or acceptance test for review.");
-      }
-
-      requireOpenAiKey(ctx.config);
-      ctx.telemetry.logAgentInvoked(
-        "code-reviewer",
-        "Code Reviewer",
-        ctx.config.defaultReviewModel,
-      );
-
-      const verdict = await runCodeReview(ctx.codeReviewerAgent, {
-        gitDiff: buildResult.gitDiff,
-        prdMarkdown: readFileSync(item.prdPath, "utf-8"),
-        acceptanceTest: readFileSync(item.acceptanceTestPath, "utf-8"),
-        changedFiles: buildResult.changedFiles,
-      });
-
-      ctx.lastReviewVerdict = verdict;
-      ctx.telemetry.logReviewVerdict(
-        verdict.decision,
-        verdict.findings.length,
-      );
-
-      const report = formatReviewVerdictReport(verdict);
-      const buildReport = formatBuildChatReport(buildResult, verdict);
-      return {
-        message: `${report}\n\n--- Build summary ---\n${buildReport.headline}\n${buildReport.body}`,
-        decision: verdict.decision,
-        findingCount: verdict.findings.length,
-      };
+      return executeReviewBuildCore(slug);
     },
   });
 

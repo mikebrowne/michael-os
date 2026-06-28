@@ -5,7 +5,7 @@ session on 2026-06-27 ([grill notes](./prds/phase-4-delegation-jobs.grill.md)). 
 [Phase 3](./phase-3-engineering-department.md) (Engineering Department complete) and realizes the
 init.md Phase 4 goal: **allow bounded delegation with full observability**.
 
-**Status:** planned.
+**Status:** **complete** (shipped 2026-06-27). Epic [#4 (BL-006)](https://github.com/mikebrowne/michael-os/issues/4); child issues [#18](https://github.com/mikebrowne/michael-os/issues/18)–[#22](https://github.com/mikebrowne/michael-os/issues/22).
 
 ## North star user story
 
@@ -177,15 +177,15 @@ branch. Each Job runs in its own memory thread (supervisor memory isolation).
 - Hard (blocking) review gating; cross-process pubsub (`UnixSocketPubSub`/Redis).
 
 ## Phase 4 complete when
-- [ ] Observability substrate captures correlated, redacted, queryable traces with a verbosity dial; storage is gitignored.
-- [ ] A delegated task is persisted as a `JobRecord` (envelope + typed payload) linked to WorkItem/Issue and `mastraRunId`.
-- [ ] EL (supervisor) auto-delegates the Code Reviewer on green; verdict (advisory) appears in the D+ report.
-- [ ] `review.missing` fires when a ship prompt is reached with no review job (detection only).
-- [ ] Dangerous tools are clearance-gated to "management"; employees structurally cannot use them.
-- [ ] `jobs` / `job #N` work; daemon forwards completion headlines to the client.
-- [ ] CI tests the delegation machinery (controlled model); a local-only eval verifies the EL *chooses* to delegate.
-- [ ] `framework-first` rule + `CONTEXT.md` definitions committed.
-- [ ] This north star doc exists and is current.
+- [x] Observability substrate captures correlated, redacted, queryable traces with a verbosity dial; storage is gitignored.
+- [x] A delegated task is persisted as a `JobRecord` (envelope + typed payload) linked to WorkItem/Issue and `mastraRunId`.
+- [x] EL (supervisor) auto-delegates the Code Reviewer on green; verdict (advisory) appears in the D+ report.
+- [x] `review.missing` fires when a ship prompt is reached with no review job (detection only).
+- [x] Dangerous tools are clearance-gated to "management"; employees structurally cannot use them.
+- [x] `jobs` / `job #N` work; daemon forwards completion headlines to the client.
+- [x] CI tests the delegation machinery (controlled model); a local-only eval verifies delegation via observability.
+- [x] `framework-first` rule + `CONTEXT.md` definitions committed.
+- [x] This north star doc exists and is current.
 
 ## Related
 - [docs/phase-3-engineering-department.md](./phase-3-engineering-department.md)

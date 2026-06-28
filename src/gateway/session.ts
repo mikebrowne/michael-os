@@ -14,6 +14,10 @@ import { getWorkItemByIssue } from "../engineering/workItem.js";
 import { rehydrateBuildFromWorkItem } from "../engineering/buildManifest.js";
 import { createEngineeringTools } from "../mastra/tools/engineering/index.js";
 import type { AppConfig } from "../config/loadConfig.js";
+import {
+  formatJobDetail,
+  formatJobListLine,
+} from "./jobFormatting.js";
 
 export type GatewayRuntime = {
   agent: Agent;
@@ -131,6 +135,34 @@ export async function processGatewayLine(
 
   if (trimmed.toLowerCase() === "health") {
     output.push("ok");
+    return { output };
+  }
+
+  if (trimmed.toLowerCase() === "jobs") {
+    const jobs = await runtime.ctx.jobRegistry.listJobs({ limit: 20 });
+    if (jobs.length === 0) {
+      output.push("\nNo jobs found.\n");
+      return { output };
+    }
+    output.push("\nRecent jobs:\n");
+    for (const job of jobs) {
+      output.push(`${formatJobListLine(job)}\n`);
+    }
+    return { output };
+  }
+
+  const jobMatch = trimmed.match(/^job\s+#?([0-9a-f-]+)$/i);
+  if (jobMatch) {
+    const query = jobMatch[1]!;
+    const jobs = await runtime.ctx.jobRegistry.listJobs({ limit: 100 });
+    const job = jobs.find(
+      (j) => j.id === query || j.id.startsWith(query),
+    );
+    if (!job) {
+      output.push(`\nNo job matching "${query}".\n`);
+      return { output };
+    }
+    output.push(`\n${formatJobDetail(job)}\n`);
     return { output };
   }
 

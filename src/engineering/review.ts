@@ -68,7 +68,26 @@ export async function runCodeReview(
   agent: Agent,
   input: CodeReviewInput,
 ): Promise<ReviewVerdict> {
-  const prompt = `Review this green build.
+  const prompt = buildCodeReviewPrompt(input);
+
+  const response = await agent.generate(prompt, {
+    structuredOutput: {
+      schema: reviewVerdictSchema,
+      instructions:
+        "Return a code review verdict JSON matching the schema. Advisory only.",
+    },
+  });
+
+  if (response.object) {
+    return reviewVerdictSchema.parse(response.object);
+  }
+
+  const text = response.text ?? "";
+  return parseReviewVerdict(text);
+}
+
+export function buildCodeReviewPrompt(input: CodeReviewInput): string {
+  return `Review this green build.
 
 ## Changed files
 ${input.changedFiles.join(", ") || "(none)"}
@@ -86,9 +105,5 @@ ${input.acceptanceTest}
 ${input.gitDiff.slice(0, 12000)}
 \`\`\`
 
-Return ONLY the JSON verdict object.`;
-
-  const response = await agent.generate(prompt);
-  const text = response.text ?? "";
-  return parseReviewVerdict(text);
+Return the structured review verdict.`;
 }

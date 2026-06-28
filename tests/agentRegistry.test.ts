@@ -20,9 +20,11 @@ describe("agentRegistry", () => {
     expect(mastra.map((a) => a.id)).toContain("code-reviewer");
   });
 
-  it("reserves directChat for phase 4", () => {
+  it("reserves directChat for phase 4b", () => {
     const reviewer = getAgent("code-reviewer");
     expect(reviewer?.directChat).toBe(false);
     expect(reviewer?.standalone).toBe(true);
+    expect(reviewer?.authority).toBe("employee");
+    expect(getAgent("engineering-lead")?.authority).toBe("management");
   });
 });

@@ -111,9 +111,23 @@ Requires `OPENAI_API_KEY`. Build and ship steps also require `CURSOR_API_KEY` wh
 - `exit` / `quit` — leave the session
 - `list` — ask the agent for in-progress work items
 - `resume #N` — resume by GitHub issue number
+- `jobs` — list recent delegated jobs
+- `job <id>` — show job detail (input, output, trace ids)
 - `YES` / `NO` — approve or cancel dangerous tools (`run-build`, `ship-docs`, `ship-implementation`)
 
-Planning artifacts land in `docs/prds/` (configurable via `PRDS_DIR`). Work-item state is stored under `.mastra/state/` (gitignored). Conversation memory is stored in `.mastra/memory.db` (gitignored) — see [ADR 0006](./adr/0006-gateway-session-memory.md). Dangerous tools pause for **code-enforced** operator approval before executing.
+Planning artifacts land in `docs/prds/` (configurable via `PRDS_DIR`). Work-item state is stored under `.mastra/state/` (gitignored). Jobs and traces live in `.mastra/jobs.db` and `.mastra/traces.db` (gitignored). Conversation memory is stored in `.mastra/mastra.db` (gitignored). Observability JSONL is under `.logs/observability.jsonl` (gitignored). Set `OBSERVABILITY_LEVEL` (`silent` | `minimal` | `standard` | `verbose` | `debug`) in `.env` to control capture verbosity.
+
+See [docs/phase-4-delegation-jobs.md](./phase-4-delegation-jobs.md) for jobs, delegation, and observability.
+
+### Local-only delegation eval (Phase 4)
+
+Requires live API keys — **not run in CI**:
+
+```bash
+npm run eval:delegation
+```
+
+Asserts delegation machinery via observability (`job.delegated`, `job.completed`) and `jobRegistry`.
 
 See [docs/phase-2-engineering-loop.md](./phase-2-engineering-loop.md) for the north star and architecture.
 

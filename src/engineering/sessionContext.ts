@@ -12,6 +12,12 @@ import { createRunLogger } from "../logging/runLogger.js";
 import type { ReviewVerdict } from "./review.js";
 import type { Agent } from "@mastra/core/agent";
 import type { EngineeringTelemetry } from "./engineeringTelemetry.js";
+import type { ObservabilityStore } from "../observability/observabilityStore.js";
+import { createObservabilityStore } from "../observability/observabilityStore.js";
+import { createObservabilityConfig } from "../observability/observabilityConfig.js";
+import type { JobRegistry } from "./jobRegistry.js";
+import { createJobRegistry } from "./jobRegistry.js";
+import type { JobRunner } from "./jobRunner.js";
 
 export type EngineeringSessionContext = {
   config: AppConfig;
@@ -23,6 +29,9 @@ export type EngineeringSessionContext = {
   lastReviewVerdict: ReviewVerdict | null;
   codeReviewerAgent: Agent;
   telemetry: EngineeringTelemetry;
+  observability: ObservabilityStore;
+  jobRegistry: JobRegistry;
+  jobRunner?: JobRunner;
   ghRunner: GhRunner;
   gitRunner: GitRunner;
 };
@@ -75,6 +84,9 @@ export function createEngineeringSessionContext(
     gitRunner?: GitRunner;
     codeReviewerAgent?: Agent;
     telemetry?: EngineeringTelemetry;
+    observability?: ObservabilityStore;
+    jobRegistry?: JobRegistry;
+    jobRunner?: JobRunner;
   },
 ): EngineeringSessionContext {
   const repoPath = options?.repoPath ?? process.cwd();
@@ -83,7 +95,15 @@ export function createEngineeringSessionContext(
     logLevel: config.logLevel,
     name: config.appName,
   });
-  const telemetry = options?.telemetry ?? createEngineeringTelemetry(runLogger);
+  const observability =
+    options?.observability ??
+    createObservabilityStore({
+      logDir: config.logDir,
+      mastraDir: config.mastraDir,
+      config: createObservabilityConfig({ level: config.observabilityLevel }),
+    });
+  const telemetry =
+    options?.telemetry ?? createEngineeringTelemetry(observability, runLogger);
   telemetry.logRegistryLoaded();
 
   return {
@@ -98,6 +118,9 @@ export function createEngineeringSessionContext(
       options?.codeReviewerAgent ??
       createCodeReviewerAgent(config.defaultReviewModel, repoPath),
     telemetry,
+    observability,
+    jobRegistry: options?.jobRegistry ?? createJobRegistry(config.mastraDir),
+    jobRunner: options?.jobRunner,
     ghRunner: options?.ghRunner ?? defaultGhRunner,
     gitRunner: options?.gitRunner ?? createDefaultGitRunner(repoPath),
   };

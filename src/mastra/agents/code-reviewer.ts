@@ -37,6 +37,8 @@ export function createCodeReviewerAgent(
   return new Agent({
     id: "code-reviewer",
     name: "Code Reviewer",
+    description:
+      "Reviews green builds against PRD and acceptance test. Returns structured verdict: approve, request-changes, or block with findings. Use after a green build before ship.",
     instructions: `${CORE_INSTRUCTIONS}
 
 ## Skills reference

@@ -1,9 +1,11 @@
 import { join } from "node:path";
-import { Agent } from "@mastra/core/agent";
+import type { Agent } from "@mastra/core/agent";
+import { Agent as MastraAgent } from "@mastra/core/agent";
 import { loadSkillFile } from "../../skills/skillLoader.js";
 import { createEngineeringTools } from "../tools/engineering/index.js";
 import { createAgentMemory } from "../agentMemory.js";
 import type { EngineeringSessionContext } from "../../engineering/sessionContext.js";
+import { filterToolsByAuthority } from "../../engineering/agentAuthority.js";
 
 const SKILL_NAMES = [
   "grill-me-with-docs",
@@ -27,14 +29,19 @@ You are NOT a generic chatbot. Never drift into unrelated small talk. If the ope
 
 ## Your job
 
-Drive the loop conversationally using tools:
+Drive the loop conversationally using tools and **delegate** specialist work to sub-agents when appropriate:
 
 1. **grill-me-with-docs** — clarify requirements; one question at a time during grill only
 2. **to-prd** — write PRD to docs/prds/<slug>.md + GitHub issue
 3. **research-write-tests** — test plan in PRD + one hash-locked acceptance test
 4. **build-handoff** — call run-build with supplied acceptance test
-5. **code-review** — after green build, call review-build for advisory verdict
+5. **code-review** — after green build, **delegate to the Code Reviewer sub-agent** (or call review-build) for advisory verdict
 6. **ship** — ship-docs (planning) or ship-implementation (code, green only)
+
+## Delegation
+
+You are a **supervisor**. When a green build needs review, delegate to the **Code Reviewer** sub-agent.
+The review runs as a tracked Job. Wait for the verdict and fold it into the D+ report before asking to ship.
 
 ## Tool reference (call these for side effects)
 
@@ -47,7 +54,7 @@ Drive the loop conversationally using tools:
 | list-in-progress | Operator asks what's open |
 | resume-work-item | Resume by slug or issue # |
 | run-build | Hand off to Cursor (needs YES) |
-| review-build | Advisory code review after green build |
+| review-build | Delegate advisory code review after green build |
 | ship-docs | Commit/push PRD + grill notes (needs YES) |
 | ship-implementation | Push green build to main (needs YES) |
 
@@ -57,7 +64,7 @@ Drive the loop conversationally using tools:
 - **Use tools** — never pretend you saved a file, created an issue, or ran a build.
 - **Dangerous tools** (run-build, ship-docs, ship-implementation): if the tool returns needsApproval, tell the operator to reply **YES** or **NO** in the gateway.
 - **Build status** comes only from run-build tool output — never invent pass/fail.
-- **After green build**, call review-build before asking to ship. Review is advisory.
+- **After green build**, delegate review or call review-build before asking to ship. Review is advisory.
 - **Ship vocabulary**: "ship planning docs" = ship-docs tool. "ship implementation" = ship-implementation after green build. NOT logistics/shipment.
 - **Commit messages**: when asked, draft a sensible message from the PRD title/slug and call the ship tool — do not start a new grill.
 - **Scope**: thin vertical slices only. No secrets or private data.
@@ -70,22 +77,14 @@ export function createEngineeringLeadAgent(
   model: string,
   ctx: EngineeringSessionContext,
   repoRoot: string = process.cwd(),
-): Agent {
+  codeReviewerSubAgent?: Agent,
+): MastraAgent {
   const tools = createEngineeringTools(ctx);
   const skillGuidance = loadEngineeringSkillBodies(repoRoot);
   const memory = createAgentMemory(repoRoot);
 
-  return new Agent({
-    id: "engineering-lead",
-    name: "Engineering Lead",
-    instructions: `${CORE_INSTRUCTIONS}
-
-## Skills reference
-
-${skillGuidance}`,
-    model,
-    memory,
-    tools: {
+  const managementTools = filterToolsByAuthority(
+    {
       saveGrillNotes: tools.saveGrillNotes,
       savePrd: tools.savePrd,
       saveTestArtifacts: tools.saveTestArtifacts,
@@ -98,5 +97,28 @@ ${skillGuidance}`,
       shipDocs: tools.shipDocsTool,
       shipImplementation: tools.shipImplementationTool,
     },
+    "management",
+  );
+
+  const reviewer = codeReviewerSubAgent ?? ctx.codeReviewerAgent;
+
+  return new MastraAgent({
+    id: "engineering-lead",
+    name: "Engineering Lead",
+    description:
+      "Orchestrates the engineering loop and delegates specialist tasks to department agents.",
+    instructions: `${CORE_INSTRUCTIONS}
+
+## Skills reference
+
+${skillGuidance}`,
+    model,
+    memory,
+    agents: reviewer
+      ? {
+          codeReviewer: reviewer,
+        }
+      : undefined,
+    tools: managementTools,
   });
 }

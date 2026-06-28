@@ -1,26 +1,24 @@
 import { mkdirSync } from "node:fs";
 import { join } from "node:path";
 import { Memory } from "@mastra/memory";
-import { LibSQLStore } from "@mastra/libsql";
-
-const MEMORY_STORE_ID = "michael-os-memory";
-const MEMORY_DB_RELATIVE = join(".mastra", "memory.db");
+import type { LibSQLStore } from "@mastra/libsql";
+import { createMastraStorage } from "./mastraStorage.js";
 
 let sharedMemory: Memory | undefined;
 
-export function createAgentMemory(cwd: string = process.cwd()): Memory {
+export function createAgentMemory(
+  cwd: string = process.cwd(),
+  storage?: LibSQLStore,
+): Memory {
   if (sharedMemory) {
     return sharedMemory;
   }
 
   mkdirSync(join(cwd, ".mastra"), { recursive: true });
-  const storage = new LibSQLStore({
-    id: MEMORY_STORE_ID,
-    url: `file:${MEMORY_DB_RELATIVE}`,
-  });
+  const store = storage ?? createMastraStorage(cwd);
 
   sharedMemory = new Memory({
-    storage,
+    storage: store,
     options: {
       lastMessages: 40,
       workingMemory: {
@@ -31,4 +29,8 @@ export function createAgentMemory(cwd: string = process.cwd()): Memory {
   });
 
   return sharedMemory;
+}
+
+export function resetAgentMemoryForTests(): void {
+  sharedMemory = undefined;
 }

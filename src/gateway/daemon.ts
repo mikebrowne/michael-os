@@ -2,9 +2,6 @@ import { createServer, type Server, type Socket } from "node:net";
 import { mkdirSync, readFileSync, writeFileSync, existsSync } from "node:fs";
 import { join } from "node:path";
 import { loadConfig, requireOpenAiKey } from "../config/loadConfig.js";
-import { createEngineeringSessionContext } from "../engineering/sessionContext.js";
-import { createEngineeringLeadAgent } from "../mastra/agents/engineering-lead.js";
-import { createAgentMemory } from "../mastra/agentMemory.js";
 import { ensurePrdsDir } from "../engineering/workItem.js";
 import {
   bootstrapGatewayWorkingMemory,
@@ -15,6 +12,13 @@ import {
   processGatewayLine,
   type GatewayRuntime,
 } from "./session.js";
+import {
+  engineeringLeadAgent,
+  engineeringSession,
+  jobRunner,
+  memory,
+} from "../mastra/index.js";
+import { jobNotificationBus, type JobCompletionEvent } from "../engineering/jobRunner.js";
 
 export const DEFAULT_GATEWAY_HOST = "127.0.0.1";
 export const DEFAULT_GATEWAY_PORT = 47821;
@@ -25,6 +29,16 @@ export type GatewayDaemonOptions = {
   port?: number;
   repoPath?: string;
 };
+
+const connectedSockets = new Set<Socket>();
+
+function broadcastToClients(message: string): void {
+  for (const socket of connectedSockets) {
+    if (!socket.destroyed) {
+      socket.write(message);
+    }
+  }
+}
 
 function loadOrCreatePersistentThread(repoPath: string): string {
   const statePath = join(repoPath, THREAD_STATE_FILE);
@@ -52,9 +66,8 @@ export async function createGatewayDaemonRuntime(
   requireOpenAiKey(config);
   ensurePrdsDir(config.prdsDir);
 
-  const ctx = createEngineeringSessionContext(config, { repoPath });
-  const agent = createEngineeringLeadAgent(config.defaultModel, ctx, repoPath);
-  const memory = createAgentMemory(repoPath);
+  const ctx = engineeringSession;
+  const agent = engineeringLeadAgent;
   const threadId = loadOrCreatePersistentThread(repoPath);
   const memorySession = {
     threadId,
@@ -74,10 +87,19 @@ export async function createGatewayDaemonRuntime(
   const port = options.port ?? DEFAULT_GATEWAY_PORT;
   const host = options.host ?? DEFAULT_GATEWAY_HOST;
 
+  jobNotificationBus.on("job.completed", (event: JobCompletionEvent) => {
+    broadcastToClients(`\n${event.headline}\n`);
+  });
+
   const server = createServer((socket: Socket) => {
+    connectedSockets.add(socket);
     let buffer = "";
     socket.write("MichaelOS Engineering Gateway (daemon)\n");
-    socket.write("Commands: exit | resume #N | list | health\n\n");
+    socket.write("Commands: exit | resume #N | list | jobs | job <id> | health\n\n");
+
+    socket.on("close", () => {
+      connectedSockets.delete(socket);
+    });
 
     socket.on("data", async (chunk) => {
       buffer += chunk.toString("utf-8");
@@ -107,6 +129,8 @@ export async function createGatewayDaemonRuntime(
     server.once("error", reject);
     server.listen(port, host, () => resolve());
   });
+
+  void jobRunner;
 
   return { server, runtime, port };
 }

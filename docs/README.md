@@ -37,13 +37,18 @@ Stable backlog IDs (`BL-NNN`) live in issue titles, e.g. `[BL-004] First end-to-
 | BL-005b | [#14](https://github.com/mikebrowne/michael-os/issues/14) — **closed** — always-on gateway |
 | BL-005c | [#15](https://github.com/mikebrowne/michael-os/issues/15) — **closed** — resume → ship manifest |
 | BL-005d | [#16](https://github.com/mikebrowne/michael-os/issues/16) — **closed** — naming convention rule |
-| BL-006 | [#4](https://github.com/mikebrowne/michael-os/issues/4) |
+| BL-006 | [#4](https://github.com/mikebrowne/michael-os/issues/4) — **closed** (Phase 4 delegation + jobs complete) |
+| BL-006a | [#18](https://github.com/mikebrowne/michael-os/issues/18) — **closed** — observability substrate |
+| BL-006b | [#19](https://github.com/mikebrowne/michael-os/issues/19) — **closed** — job system |
+| BL-006c | [#20](https://github.com/mikebrowne/michael-os/issues/20) — **closed** — agentic delegation |
+| BL-006d | [#21](https://github.com/mikebrowne/michael-os/issues/21) — **closed** — delegation eval + CI test |
+| BL-006e | [#22](https://github.com/mikebrowne/michael-os/issues/22) — **closed** — authority + vocabulary |
 | BL-007 | [#5](https://github.com/mikebrowne/michael-os/issues/5) |
 | BL-008 | [#6](https://github.com/mikebrowne/michael-os/issues/6) |
 | BL-009 | [#7](https://github.com/mikebrowne/michael-os/issues/7) |
 | BL-010 | [#8](https://github.com/mikebrowne/michael-os/issues/8) |
 
-**Next build:** [BL-006 / issue #4](https://github.com/mikebrowne/michael-os/issues/4) — Sessions, delegation, and job queue (Phase 4).
+**Next build:** [BL-007 / issue #5](https://github.com/mikebrowne/michael-os/issues/5) — Staging, review, and promotion (Phase 5). Phase 4b (Necessity Reviewer, multi-route chat) tracked separately.
 
 ## Key docs
 
@@ -51,6 +56,7 @@ Stable backlog IDs (`BL-NNN`) live in issue titles, e.g. `[BL-004] First end-to-
 |-----|---------|
 | [phase-2-engineering-loop.md](./phase-2-engineering-loop.md) | Phase 2 north star, grill decisions, delivery slices |
 | [phase-3-engineering-department.md](./phase-3-engineering-department.md) | Phase 3 north star, department roster, delivery slices |
+| [phase-4-delegation-jobs.md](./phase-4-delegation-jobs.md) | Phase 4 north star, jobs, observability, delegation |
 | [CONTEXT.md](../CONTEXT.md) | Domain glossary |
 | [AGENTS.md](../AGENTS.md) | Operating rules for humans and agents |
 | [init.md](../init.md) | Full build plan (Phases 0–14) |

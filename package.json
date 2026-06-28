@@ -19,10 +19,12 @@
     "agent:build": "tsx scripts/agentBuild.ts",
     "gateway": "tsx scripts/gateway.ts",
     "gateway:daemon": "tsx scripts/gatewayDaemon.ts",
-    "chat": "tsx scripts/chatClient.ts"
+    "chat": "tsx scripts/chatClient.ts",
+    "eval:delegation": "tsx scripts/evalDelegation.ts"
   },
   "dependencies": {
     "@cursor/sdk": "^1.0.22",
+    "@libsql/client": "^0.17.4",
     "@mastra/core": "^1.46.0",
     "@mastra/libsql": "^1.14.2",
     "@mastra/loggers": "^1.2.0",

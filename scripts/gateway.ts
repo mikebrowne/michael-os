@@ -1,9 +1,6 @@
 import * as readline from "node:readline/promises";
 import { stdin as input, stdout as output } from "node:process";
-import { loadConfig, requireOpenAiKey } from "../src/config/loadConfig.js";
-import { createEngineeringSessionContext } from "../src/engineering/sessionContext.js";
-import { createEngineeringLeadAgent } from "../src/mastra/agents/engineering-lead.js";
-import { createAgentMemory } from "../src/mastra/agentMemory.js";
+import { requireOpenAiKey } from "../src/config/loadConfig.js";
 import { ensurePrdsDir } from "../src/engineering/workItem.js";
 import {
   bootstrapGatewayWorkingMemory,
@@ -13,23 +10,29 @@ import {
   createGatewayRuntime,
   processGatewayLine,
 } from "../src/gateway/session.js";
+import {
+  config,
+  engineeringLeadAgent,
+  engineeringSession,
+  memory,
+} from "../src/mastra/index.js";
 
 async function main() {
-  const config = loadConfig();
   requireOpenAiKey(config);
   ensurePrdsDir(config.prdsDir);
 
-  const ctx = createEngineeringSessionContext(config);
-  const agent = createEngineeringLeadAgent(config.defaultModel, ctx);
-  const memory = createAgentMemory();
   const memorySession = createGatewayMemorySession();
 
-  await bootstrapGatewayWorkingMemory(memory, memorySession, ctx.currentWorkItem);
+  await bootstrapGatewayWorkingMemory(
+    memory,
+    memorySession,
+    engineeringSession.currentWorkItem,
+  );
 
   const runtime = await createGatewayRuntime({
     config,
-    ctx,
-    agent,
+    ctx: engineeringSession,
+    agent: engineeringLeadAgent,
     memory,
     memorySession,
   });
@@ -37,7 +40,9 @@ async function main() {
   const rl = readline.createInterface({ input, output });
 
   console.log("MichaelOS Engineering Gateway");
-  console.log("Chat with the Engineering Lead. Commands: exit | resume #N | list");
+  console.log(
+    "Chat with the Engineering Lead. Commands: exit | resume #N | list | jobs | job <id>",
+  );
   console.log("Dangerous actions require YES when prompted.");
   console.log(`Session thread: ${memorySession.threadId.slice(0, 8)}… (memory on)\n`);
 
