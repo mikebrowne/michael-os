@@ -10,6 +10,7 @@ import { createQaEngineerAgent } from "../mastra/agents/qa-engineer.js";
 import { createEngineeringTelemetry } from "./engineeringTelemetry.js";
 import { createRunLogger } from "../logging/runLogger.js";
 import type { ReviewVerdict } from "./review.js";
+import type { BuildVerificationVerdict } from "./buildVerification.js";
 import type { Agent } from "@mastra/core/agent";
 import type { EngineeringTelemetry } from "./engineeringTelemetry.js";
 import type { ObservabilityStore } from "../observability/observabilityStore.js";
@@ -29,6 +30,7 @@ export type EngineeringSessionContext = {
   currentWorkItem: WorkItem | null;
   lastBuildResult: RunAgentBuildResult | null;
   lastReviewVerdict: ReviewVerdict | null;
+  lastBuildVerificationVerdict: BuildVerificationVerdict | null;
   qaEngineerAgent: Agent;
   telemetry: EngineeringTelemetry;
   observability: ObservabilityStore;
@@ -118,6 +120,7 @@ export function createEngineeringSessionContext(
     currentWorkItem: null,
     lastBuildResult: null,
     lastReviewVerdict: null,
+    lastBuildVerificationVerdict: null,
     qaEngineerAgent:
       options?.qaEngineerAgent ??
       createQaEngineerAgent(config.defaultReviewModel, repoPath),

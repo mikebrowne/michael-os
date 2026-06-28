@@ -26,6 +26,21 @@ import { requireOpenAiKey, requireCursorKey } from "../../../config/loadConfig.j
 import { createRunLogger } from "../../../logging/runLogger.js";
 import { randomUUID } from "node:crypto";
 import {
+  formatBuildVerificationReport,
+  canPromoteWithVerdict,
+  assertAllGatesPresent,
+  REQUIRED_SLICE2_GATES,
+} from "../../../engineering/buildVerification.js";
+import { runBuildVerification } from "../../../engineering/buildVerificationRunner.js";
+import {
+  collectFailedFindings,
+  createRemediationState,
+  isRemediationCapReached,
+  recordRemediationAttempt,
+  triageGateFindings,
+  findingsToRemediationContext,
+} from "../../../engineering/remediation.js";
+import {
   runCodeReview,
   formatReviewVerdictReport,
 } from "../../../engineering/review.js";
@@ -174,6 +189,9 @@ export function createEngineeringTools(ctx: EngineeringSessionContext) {
       throw new Error("Cannot promote: missing green build or work item.");
     }
 
+    if (!ctx.lastBuildVerificationVerdict || ctx.lastBuildVerificationVerdict.overall !== "pass") {
+      throw new Error("Cannot promote: build verification must pass first (or override gates).");
+    }
     if (!item.stagedBranchName || item.stagedPrNumber == null) {
       throw new Error("Cannot promote: work item has no staged PR. Run stage-implementation first.");
     }
@@ -313,6 +331,141 @@ export function createEngineeringTools(ctx: EngineeringSessionContext) {
       message: `${report}\n\n--- Build summary ---\n${buildReport.headline}\n${buildReport.body}`,
       decision: verdict.decision,
       findingCount: verdict.findings.length,
+    };
+  }
+
+  async function executeVerifyBuildCore(slug: string) {
+    const buildResult = tryRehydrateBuildResult(ctx);
+    if (!buildResult || !isBuildGreen(buildResult)) {
+      throw new Error("No green build to verify. Run build first.");
+    }
+
+    const item = getWorkItem(ctx.config.stateDir, slug);
+    if (!item?.prdPath || !item.acceptanceTestPath) {
+      throw new Error("Work item missing PRD or acceptance test for verification.");
+    }
+
+    requireOpenAiKey(ctx.config);
+    ctx.telemetry.logAgentInvoked(
+      "qa-engineer",
+      "QA Engineer",
+      ctx.config.defaultReviewModel,
+    );
+
+    const prdMarkdown = readFileSync(item.prdPath, "utf-8");
+    const acceptanceTest = readFileSync(item.acceptanceTestPath, "utf-8");
+    const attemptCount = item.remediationAttemptCount ?? 0;
+
+    const runVerification = async () => {
+      const verdict = await runBuildVerification({
+        worktreePath: buildResult.worktreePath,
+        codeReviewInput: {
+          gitDiff: buildResult.gitDiff,
+          prdMarkdown,
+          acceptanceTest,
+          changedFiles: buildResult.changedFiles,
+        },
+        agent: ctx.qaEngineerAgent,
+      });
+      assertAllGatesPresent(verdict, REQUIRED_SLICE2_GATES);
+      return verdict;
+    };
+
+    let verdict;
+    let jobId: string | undefined;
+    if (ctx.jobRunner) {
+      const result = await ctx.jobRunner.runBuildVerificationJob({
+        parentWorkItem: slug,
+        issueNumber: item.issueNumber,
+        input: {
+          workItemSlug: slug,
+          issueNumber: item.issueNumber,
+          buildRunDir: buildResult.runDir,
+          acceptanceHash: buildResult.acceptanceHash,
+          worktreePath: buildResult.worktreePath,
+          remediationAttempt: attemptCount,
+        },
+        executeVerification: runVerification,
+      });
+      verdict = result.verdict;
+      jobId = result.jobId;
+    } else {
+      verdict = await runVerification();
+    }
+
+    ctx.lastBuildVerificationVerdict = verdict;
+    for (const gate of verdict.gates) {
+      ctx.telemetry.logGateResult(gate.kind, gate.status, slug);
+    }
+
+    if (verdict.overall === "pass") {
+      ctx.currentWorkItem = upsertWorkItem(ctx.config.stateDir, {
+        ...item,
+        stage: "staged",
+      });
+      return {
+        message: `${formatBuildVerificationReport(verdict)}\n\nReady for promotion decision.`,
+        overall: verdict.overall,
+        jobId,
+        canPromote: true,
+      };
+    }
+
+    const triage = triageGateFindings(verdict.gates);
+    const findings = collectFailedFindings(verdict.gates);
+    const remediation = recordRemediationAttempt(
+      createRemediationState(ctx.config.remediationCap),
+      findings,
+    );
+    remediation.attemptCount = attemptCount + 1;
+    remediation.lastFindings = findings;
+
+    if (triage === "escalate-spec") {
+      return {
+        message: `${formatBuildVerificationReport(verdict)}\n\nSpec/requirements gap — escalate for re-PRD.`,
+        overall: verdict.overall,
+        triage,
+        canPromote: false,
+      };
+    }
+
+    if (triage === "surface-security") {
+      return {
+        message: `${formatBuildVerificationReport(verdict)}\n\nSecurity/permission findings surfaced to operator.`,
+        overall: verdict.overall,
+        triage,
+        canPromote: false,
+      };
+    }
+
+    if (isRemediationCapReached(remediation)) {
+      ctx.currentWorkItem = upsertWorkItem(ctx.config.stateDir, {
+        ...item,
+        stage: "blocked",
+        remediationAttemptCount: remediation.attemptCount,
+      });
+      return {
+        message: `${formatBuildVerificationReport(verdict)}\n\nRemediation cap (${ctx.config.remediationCap}) reached — work item blocked. Escalate to operator.`,
+        overall: verdict.overall,
+        blocked: true,
+        attemptCount: remediation.attemptCount,
+        findingsContext: findingsToRemediationContext(findings),
+        canPromote: false,
+      };
+    }
+
+    ctx.currentWorkItem = upsertWorkItem(ctx.config.stateDir, {
+      ...item,
+      stage: "staged",
+      remediationAttemptCount: remediation.attemptCount,
+    });
+
+    return {
+      message: `${formatBuildVerificationReport(verdict)}\n\nRemediation attempt ${remediation.attemptCount}/${ctx.config.remediationCap}. Findings:\n${findingsToRemediationContext(findings)}`,
+      overall: verdict.overall,
+      attemptCount: remediation.attemptCount,
+      findingsContext: findingsToRemediationContext(findings),
+      canPromote: canPromoteWithVerdict(verdict),
     };
   }
 
@@ -559,6 +712,29 @@ export function createEngineeringTools(ctx: EngineeringSessionContext) {
     },
   });
 
+  const verifyBuild = createTool({
+    id: "verify-build",
+    description:
+      "Run build-verification gates (CI + code review) via QA Engineer. Returns composite verdict.",
+    inputSchema: z.object({
+      slug: z.string().optional(),
+    }),
+    outputSchema: z.object({
+      message: z.string(),
+      overall: z.string().optional(),
+      canPromote: z.boolean().optional(),
+      blocked: z.boolean().optional(),
+      attemptCount: z.number().optional(),
+    }),
+    execute: async (input) => {
+      const slug = input.slug ?? ctx.currentWorkItem?.slug;
+      if (!slug) {
+        throw new Error("No work item slug for verification.");
+      }
+      return executeVerifyBuildCore(slug);
+    },
+  });
+
   const reviewBuild = createTool({
     id: "review-build",
     description:
@@ -714,6 +890,7 @@ export function createEngineeringTools(ctx: EngineeringSessionContext) {
     listInProgress,
     resumeWorkItem,
     runBuild,
+    verifyBuild,
     reviewBuild,
     shipDocsTool,
     shipImplementationTool,

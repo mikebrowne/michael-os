@@ -29,6 +29,7 @@ export type AppConfig = {
   cursorApiKey?: string;
   observabilityLevel: ObservabilityLevel;
   mastraDir: string;
+  remediationCap: number;
 };
 
 const DEMO_VAULT_RELATIVE = join("examples", "demo-vault");
@@ -73,6 +74,8 @@ export function loadConfig(cwd: string = process.cwd()): AppConfig {
   const observabilityLevel = parseObservabilityLevel(
     process.env.OBSERVABILITY_LEVEL?.trim(),
   );
+  const remediationCapRaw = process.env.REMEDIATION_CAP?.trim();
+  const remediationCapParsed = remediationCapRaw ? Number(remediationCapRaw) : 3;
 
   return {
     appName: String(merged.appName),
@@ -92,6 +95,7 @@ export function loadConfig(cwd: string = process.cwd()): AppConfig {
     openaiApiKey,
     cursorApiKey,
     observabilityLevel,
+    remediationCap: Number.isFinite(remediationCapParsed) ? remediationCapParsed : 3,
   };
 }
 

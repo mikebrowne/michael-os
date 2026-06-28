@@ -10,6 +10,7 @@ import {
   needsApprovalMessage,
   parseYesNo,
 } from "../engineering/approvalGate.js";
+import { logApprovalAudit } from "../engineering/approvalAudit.js";
 import { getWorkItemByIssue } from "../engineering/workItem.js";
 import { rehydrateBuildFromWorkItem } from "../engineering/buildManifest.js";
 import { createEngineeringTools } from "../mastra/tools/engineering/index.js";
@@ -63,6 +64,14 @@ export async function processGatewayLine(
   if (yesNo && runtime.ctx.approval.pending) {
     if (yesNo === "yes") {
       const toolId = runtime.ctx.approval.pending.toolId;
+      const pendingArgs = runtime.ctx.approval.pending.args;
+      logApprovalAudit(runtime.ctx.observability, runtime.ctx.telemetry, {
+        toolId,
+        approved: true,
+        workItemSlug: runtime.ctx.currentWorkItem?.slug,
+        issueNumber: runtime.ctx.currentWorkItem?.issueNumber,
+        args: pendingArgs,
+      });
       try {
         const result = await runtime.tools.replayDangerousTool();
         output.push(`\nengineering-lead> Approved ${toolId}. Result:\n`);
@@ -79,8 +88,17 @@ export async function processGatewayLine(
       );
       return { output };
     }
+    const deniedToolId = runtime.ctx.approval.pending.toolId;
+    const deniedArgs = runtime.ctx.approval.pending.args;
+    logApprovalAudit(runtime.ctx.observability, runtime.ctx.telemetry, {
+      toolId: deniedToolId,
+      approved: false,
+      workItemSlug: runtime.ctx.currentWorkItem?.slug,
+      issueNumber: runtime.ctx.currentWorkItem?.issueNumber,
+      args: deniedArgs,
+    });
     runtime.ctx.approval.pending = undefined;
-    runtime.ctx.telemetry.logShipDecision(false, "cancelled");
+    runtime.ctx.telemetry.logApprovalDecision(false, deniedToolId);
     output.push("\nengineering-lead> Cancelled.\n");
     return { output };
   }

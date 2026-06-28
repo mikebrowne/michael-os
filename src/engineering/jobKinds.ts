@@ -1,7 +1,8 @@
 import { z } from "zod";
 import { reviewVerdictSchema } from "../engineering/review.js";
+import { buildVerificationVerdictSchema } from "../engineering/buildVerification.js";
 
-export const JOB_KINDS = ["code-review"] as const;
+export const JOB_KINDS = ["code-review", "build-verification"] as const;
 export type JobKind = (typeof JOB_KINDS)[number];
 
 export const jobStatusSchema = z.enum([
@@ -37,6 +38,7 @@ export type JobRecord = z.infer<typeof jobRecordSchema>;
 
 export const jobOutputSchemas: Record<JobKind, z.ZodType> = {
   "code-review": reviewVerdictSchema,
+  "build-verification": buildVerificationVerdictSchema,
 };
 
 export function validateJobOutput(kind: JobKind, output: unknown): unknown {
@@ -48,4 +50,9 @@ export type CodeReviewJobInput = {
   issueNumber?: number;
   buildRunDir?: string;
   acceptanceHash?: string;
+};
+
+export type BuildVerificationJobInput = CodeReviewJobInput & {
+  worktreePath: string;
+  remediationAttempt?: number;
 };

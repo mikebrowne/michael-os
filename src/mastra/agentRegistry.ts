@@ -43,6 +43,7 @@ export const AGENT_REGISTRY: AgentRegistration[] = [
       "resume-work-item",
       "run-build",
       "review-build",
+      "verify-build",
       "ship-docs",
       "ship-implementation",
       "stage-implementation",

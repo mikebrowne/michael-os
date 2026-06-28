@@ -1,9 +1,10 @@
 import { EventEmitter } from "node:events";
 import { randomUUID } from "node:crypto";
 import type { JobRegistry } from "./jobRegistry.js";
-import type { CodeReviewJobInput } from "./jobKinds.js";
+import type { CodeReviewJobInput, BuildVerificationJobInput } from "./jobKinds.js";
 import type { ObservabilityStore } from "../observability/observabilityStore.js";
 import type { ReviewVerdict } from "./review.js";
+import type { BuildVerificationVerdict } from "./buildVerification.js";
 
 export type JobCompletionEvent = {
   jobId: string;
@@ -19,6 +20,15 @@ export const jobNotificationBus = new EventEmitter();
 export type JobRunnerDeps = {
   jobRegistry: JobRegistry;
   observability: ObservabilityStore;
+};
+
+export type RunBuildVerificationJobOptions = {
+  parentWorkItem: string;
+  issueNumber?: number;
+  delegatedTo?: string;
+  input: BuildVerificationJobInput;
+  traceId?: string;
+  executeVerification: () => Promise<BuildVerificationVerdict>;
 };
 
 export type RunCodeReviewJobOptions = {
@@ -180,6 +190,141 @@ export class JobRunner {
           job.id,
           "failed",
           "code-review",
+          options.issueNumber,
+          message,
+        ),
+        parentWorkItem: options.parentWorkItem,
+        issueNumber: options.issueNumber,
+      });
+      throw error;
+    }
+  }
+
+  async runBuildVerificationJob(options: RunBuildVerificationJobOptions): Promise<{
+    jobId: string;
+    verdict: BuildVerificationVerdict;
+  }> {
+    const traceId = options.traceId ?? randomUUID();
+    const runId = randomUUID();
+    const delegatedTo = options.delegatedTo ?? "qa-engineer";
+
+    const job = await this.deps.jobRegistry.createJob({
+      kind: "build-verification",
+      parentWorkItem: options.parentWorkItem,
+      issueNumber: options.issueNumber,
+      delegatedTo,
+      input: options.input as unknown as Record<string, unknown>,
+      traceId,
+      mastraRunId: runId,
+    });
+
+    this.emitLifecycle("job.created", {
+      jobId: job.id,
+      workItemSlug: options.parentWorkItem,
+      issueNumber: options.issueNumber,
+      traceId,
+      mastraRunId: runId,
+      agentId: delegatedTo,
+    });
+
+    this.emitLifecycle("job.delegated", {
+      jobId: job.id,
+      workItemSlug: options.parentWorkItem,
+      issueNumber: options.issueNumber,
+      traceId,
+      mastraRunId: runId,
+      agentId: delegatedTo,
+    });
+
+    await this.deps.jobRegistry.updateJob(job.id, {
+      status: "running",
+      startedAt: new Date().toISOString(),
+    });
+    this.emitLifecycle("job.started", {
+      jobId: job.id,
+      workItemSlug: options.parentWorkItem,
+      issueNumber: options.issueNumber,
+      traceId,
+      agentId: delegatedTo,
+    });
+
+    try {
+      const verdict = await options.executeVerification();
+      const completedAt = new Date().toISOString();
+      await this.deps.jobRegistry.updateJob(job.id, {
+        status: "succeeded",
+        output: verdict,
+        completedAt,
+      });
+      for (const gate of verdict.gates) {
+        this.emitLifecycle(
+          "gate.result",
+          {
+            jobId: job.id,
+            workItemSlug: options.parentWorkItem,
+            issueNumber: options.issueNumber,
+            traceId,
+            agentId: delegatedTo,
+          },
+          { kind: gate.kind, status: gate.status },
+        );
+      }
+      this.emitLifecycle(
+        "job.completed",
+        {
+          jobId: job.id,
+          workItemSlug: options.parentWorkItem,
+          issueNumber: options.issueNumber,
+          traceId,
+          agentId: delegatedTo,
+        },
+        {
+          overall: verdict.overall,
+          gateCount: verdict.gates.length,
+          remediationAttempt: options.input.remediationAttempt,
+        },
+      );
+      this.notifyCompletion({
+        jobId: job.id,
+        kind: "build-verification",
+        status: "succeeded",
+        headline: formatJobHeadline(
+          job.id,
+          "succeeded",
+          "build-verification",
+          options.issueNumber,
+          verdict.overall,
+        ),
+        parentWorkItem: options.parentWorkItem,
+        issueNumber: options.issueNumber,
+      });
+      return { jobId: job.id, verdict };
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
+      await this.deps.jobRegistry.updateJob(job.id, {
+        status: "failed",
+        error: message,
+        completedAt: new Date().toISOString(),
+      });
+      this.emitLifecycle(
+        "job.failed",
+        {
+          jobId: job.id,
+          workItemSlug: options.parentWorkItem,
+          issueNumber: options.issueNumber,
+          traceId,
+          agentId: delegatedTo,
+        },
+        { error: message },
+      );
+      this.notifyCompletion({
+        jobId: job.id,
+        kind: "build-verification",
+        status: "failed",
+        headline: formatJobHeadline(
+          job.id,
+          "failed",
+          "build-verification",
           options.issueNumber,
           message,
         ),

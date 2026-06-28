@@ -12,6 +12,13 @@ export type EngineeringTelemetry = {
   logRegistryLoaded: () => void;
   logShipDecision: (approved: boolean, toolId: string) => void;
   logReviewMissing: (workItemSlug: string, issueNumber?: number) => void;
+  logApprovalDecision: (
+    approved: boolean,
+    toolId: string,
+    context?: Record<string, unknown>,
+  ) => void;
+  logGateResult: (kind: string, status: string, workItemSlug?: string) => void;
+  logPromotionEvent: (event: string, data: Record<string, unknown>) => void;
 };
 
 export function createEngineeringTelemetry(
@@ -56,6 +63,19 @@ export function createEngineeringTelemetry(
         { workItemSlug, issueNumber },
         "standard",
       );
+    },
+    logApprovalDecision(approved, toolId, context = {}) {
+      log(approved ? "approval.granted" : "approval.denied", {
+        approved,
+        toolId,
+        ...context,
+      });
+    },
+    logGateResult(kind, status, workItemSlug) {
+      log("gate.result", { kind, status, workItemSlug });
+    },
+    logPromotionEvent(event, data) {
+      log(`promotion.${event}`, data);
     },
   };
 }

@@ -13,7 +13,9 @@ export type WorkItemStage =
   | "prd"
   | "tests"
   | "build"
+  | "staged"
   | "ship"
+  | "blocked"
   | "done"
   | "abandoned";
 
@@ -30,6 +32,7 @@ export type WorkItem = {
   lastBuildSuccess?: boolean;
   manifestPath?: string;
   acceptanceHash?: string;
+  remediationAttemptCount?: number;
   stagedBranchName?: string;
   stagedPrNumber?: number;
   createdAt: string;

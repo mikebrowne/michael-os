@@ -11,6 +11,7 @@ import { demoAgent } from "./agents/demo-agent.js";
 import { createEngineeringLeadAgent } from "./agents/engineering-lead.js";
 import { createQaEngineerAgent } from "./agents/qa-engineer.js";
 import { demoWorkflow } from "./workflows/demo-workflow.js";
+import { buildVerificationWorkflow } from "./workflows/buildVerificationWorkflow.js";
 import { listAgents } from "./agentRegistry.js";
 import { createMastraStorage } from "./mastraStorage.js";
 import { createAgentMemory } from "./agentMemory.js";
@@ -80,7 +81,7 @@ export function createMastraHarness(
 
   const mastra = new Mastra({
     agents: { demoAgent, engineeringLeadAgent, qaEngineerAgent },
-    workflows: { demoWorkflow },
+    workflows: { demoWorkflow, buildVerificationWorkflow },
     storage,
     logger: new PinoLogger({
       name: config.appName,

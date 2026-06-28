@@ -94,6 +94,7 @@ export function createEngineeringLeadAgent(
       resumeWorkItem: tools.resumeWorkItem,
       runBuild: tools.runBuild,
       reviewBuild: tools.reviewBuild,
+      verifyBuild: tools.verifyBuild,
       shipDocs: tools.shipDocsTool,
       shipImplementation: tools.shipImplementationTool,
       stageImplementation: tools.stageImplementationTool,
