@@ -5,7 +5,7 @@ grill session on 2026-06-28 ([grill notes](./prds/phase-5-staging-review-promoti
 builds on [Phase 4](./phase-4-delegation-jobs.md) (delegation + Jobs + observability) and realizes
 the init.md Phase 5 goal: **every generated change is staged, reviewed, validated, and promotable.**
 
-**Status:** **planned**. Epic BL-007 / issue [#5](https://github.com/mikebrowne/michael-os/issues/5).
+**Status:** **complete (shipped 2026-06-28)**. Epic BL-007 / issue [#5](https://github.com/mikebrowne/michael-os/issues/5) — closed.
 
 ## Guiding principle
 
@@ -349,35 +349,35 @@ local-only scripts per the secret-handling rule.
   dependency install, file deletion, secrets, arbitrary external writes).
 
 ## Phase 5 complete when
-- [ ] A green build is **staged** as a branch + PR (no direct push to `main`).
-- [ ] The **QA Engineer** runs a deterministic verification workflow (CI + code review + security +
+- [x] A green build is **staged** as a branch + PR (no direct push to `main`).
+- [x] The **QA Engineer** runs a deterministic verification workflow (CI + code review + security +
       permission) and returns one composite `build-verification` verdict.
-- [ ] Promotion is **blocked** unless all gates are green or a specific gate is **overridden**
+- [x] Promotion is **blocked** unless all gates are green or a specific gate is **overridden**
       (override logged in the ledger + telemetry).
-- [ ] **Promotion** merges the PR to `main` and writes a `PromotionRecord` linking
+- [x] **Promotion** merges the PR to `main` and writes a `PromotionRecord` linking
       Issue/WorkItem/Job ↔ commit SHA.
-- [ ] `rollback #N` reverts a promotion; `promotions`/`promotion #N` inspect the ledger.
-- [ ] **Controlled restart** drains in-flight Jobs and relaunches via supervisor, with chat messages
+- [x] `rollback #N` reverts a promotion; `promotions`/`promotion #N` inspect the ledger.
+- [x] **Controlled restart** drains in-flight Jobs and relaunches via supervisor, with chat messages
       for down/up (back-up includes the commit SHA).
-- [ ] CI tests the staging/promotion/rollback + verification machinery against a bare-repo remote
+- [x] CI tests the staging/promotion/rollback + verification machinery against a bare-repo remote
       with zero secrets, including: **no-direct-push-to-main** regression, **gate-cannot-be-skipped**
       invariant, **approval audit** (denial aborts, no side effects), and **clearance** (QA Engineer
       cannot promote/rollback/restart).
-- [ ] The **permission scanner** has per-rule tests plus a clean-diff negative (no false positives).
-- [ ] **Judgment evals** (local-only, real model) prove the gates aren't rubber stamps: seeded
+- [x] The **permission scanner** has per-rule tests plus a clean-diff negative (no false positives).
+- [x] **Judgment evals** (local-only, real model) prove the gates aren't rubber stamps: seeded
       vulnerability caught, seeded defect caught, no false-block on a clean change, triage routes
       correctly, and remediation converges/halts at the cap.
-- [ ] A red verdict or operator NO **kicks the change back to the EL** (not promoted, not discarded);
+- [x] A red verdict or operator NO **kicks the change back to the EL** (not promoted, not discarded);
       the PR stays open as a draft.
-- [ ] The EL remediation loop is **bounded** (cap 3, configurable) and hard-stops into `blocked`
+- [x] The EL remediation loop is **bounded** (cap 3, configurable) and hard-stops into `blocked`
       with an operator escalation; each attempt uses fresh context + findings.
-- [ ] EL **light triage** routes security/permission findings to the operator and spec gaps to
+- [x] EL **light triage** routes security/permission findings to the operator and spec gaps to
       re-spec instead of looping.
-- [ ] A NO routes to **fix / re-spec / park / abandon**; `parked` preserves work (draft PR + label +
+- [x] A NO routes to **fix / re-spec / park / abandon**; `parked` preserves work (draft PR + label +
       Backlog) and resumes via `resume #N`.
-- [ ] `staged` / `blocked` / `parked` states exist in the WorkItem lifecycle.
-- [ ] Promote/rollback/restart approvals **and denials are logged** (Decision C / BL-003 partial).
-- [ ] ADR 0007 + ADR 0008 + `CONTEXT.md` vocabulary committed; this north-star doc is current.
+- [x] `staged` / `blocked` / `parked` states exist in the WorkItem lifecycle.
+- [x] Promote/rollback/restart approvals **and denials are logged** (Decision C / BL-003 partial).
+- [x] ADR 0007 + ADR 0008 + `CONTEXT.md` vocabulary committed; this north-star doc is current.
 
 ## Related
 - [docs/phase-4-delegation-jobs.md](./phase-4-delegation-jobs.md)
