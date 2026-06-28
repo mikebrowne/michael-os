@@ -60,6 +60,38 @@ _Avoid_: "pipeline" (loosely), "skill" (a skill's orchestration is probabilistic
 A full agent invoked by another agent as if it were a callable tool. Mastra exposes each configured sub-agent to the parent's model, runs it with its own instructions/model/memory, and returns a structured result. Delegation = treating a probabilistic composite (an agent) as a callable unit. The Code Reviewer is the Engineering Lead's first sub-agent.
 _Avoid_: "child process", "worker" (those are execution mechanics, not the delegation concept)
 
+**QA Engineer**:
+The **employee** sub-agent (Phase 5 upgrade of the Code Reviewer) that runs the **verification workflow** over a staged change and returns one composite verdict. A *role* that accretes QA skills over time; its first gates are CI, code review, security review, and permission review. It may **assess** but structurally **cannot** stage, promote, roll back, or restart (only management — the Engineering Lead — can, with operator approval).
+_Avoid_: "reviewer" (the QA Engineer owns more than review), "tester" (it orchestrates judgment + deterministic checks)
+
+**Staging / staged change**:
+A green build pushed as a `feature/<slug>-<runId>` branch with an open **GitHub pull request**; the PR diff is the reviewable **staged diff**. Staging never touches `main`. It is the input to verification and the thing a **Promotion** later merges.
+_Avoid_: "deploy", "release" (those are later/other concepts)
+
+**Gate**:
+A **blocking-by-default, operator-overridable** pass/fail check on a staged change — CI, code review, security review, or permission review. All gates green (or each failing gate explicitly overridden) is required to promote; every override is logged in the promotion ledger and telemetry.
+_Avoid_: "check" (loosely), "test" (a gate may wrap tests but is the promotion control)
+
+**Promotion**:
+Merging a **verified** staged change (all gates green or overridden) to `main` after operator approval. The single operator decision point at the end of the engineering loop. Distinct from "ship" (Phase 2 vocabulary) and from "deploy".
+_Avoid_: "ship" (reserved for the older direct path), "deploy", "release"
+
+**PromotionRecord / promotionRegistry**:
+The **ledger** of promotions — a thin projection over git (same pattern as `jobRegistry`/`JobRecord`) recording the promotion **commit SHA**, the linked Issue/WorkItem and `build-verification` Job, and which gates passed or were overridden. Enables one-command **Rollback** and an auditable history.
+_Avoid_: bare "registry"/"record" (domain-qualify per naming conventions)
+
+**Rollback**:
+Undoing a promotion via **`git revert`** of its promotion commit (forward-only history; **never** a force-push or hard reset). Surfaced as `rollback #N`; a dangerous, management-only action requiring operator approval.
+_Avoid_: "reset", "revert the branch" (rollback is a forward revert recorded in the ledger)
+
+**Remediation loop**:
+What happens on a **red** verdict or operator **NO**: the change is neither promoted nor discarded — the QA Engineer's findings go back to the **Engineering Lead**, which light-triages (security/permission → surface to operator; spec gap → re-spec; code-level → fix) and runs a **bounded** fix → re-verify loop (re-build with fresh context + findings, **cap of 3** attempts, configurable). At the cap it hard-stops, escalates, and the WorkItem moves to **`blocked`**. The staged PR stays open as a **draft** throughout. A NO routes to **fix / re-spec / park / abandon**.
+_Avoid_: "retry loop" (it is triaged + bounded, not blind retry)
+
+**WorkItem stages (Phase 5 additions)**:
+**`staged`** (build green, PR open, verification running), **`blocked`** (remediation cap hit / needs an operator decision), and **`parked`** (set aside but recoverable — branch kept, PR kept open as a draft with a `parked` label, issue returned to the **Backlog** column, resumable via `resume #N`). `parked` ≠ `abandoned`: parked means "will revisit," abandoned means "won't do."
+_Avoid_: conflating `parked` (resumable) with `abandoned` (terminal)
+
 ## Kinds of work (the determinism ratchet)
 
 Two axes describe every unit of work:

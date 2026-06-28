@@ -43,12 +43,20 @@ Stable backlog IDs (`BL-NNN`) live in issue titles, e.g. `[BL-004] First end-to-
 | BL-006c | [#20](https://github.com/mikebrowne/michael-os/issues/20) — **closed** — agentic delegation |
 | BL-006d | [#21](https://github.com/mikebrowne/michael-os/issues/21) — **closed** — delegation eval + CI test |
 | BL-006e | [#22](https://github.com/mikebrowne/michael-os/issues/22) — **closed** — authority + vocabulary |
-| BL-007 | [#5](https://github.com/mikebrowne/michael-os/issues/5) |
+| BL-007 | [#5](https://github.com/mikebrowne/michael-os/issues/5) — **planned** (Phase 5 staging, review, promotion; docs ready) |
+| BL-007a | [#23](https://github.com/mikebrowne/michael-os/issues/23) — Slice 0: ADRs, vocabulary, qa-engineer rename |
+| BL-007b | [#24](https://github.com/mikebrowne/michael-os/issues/24) — Slice 1: staging + PR promotion + rollback loop |
+| BL-007c | [#25](https://github.com/mikebrowne/michael-os/issues/25) — Slice 2: QA Engineer + first gates (CI + code review) |
+| BL-007d | [#26](https://github.com/mikebrowne/michael-os/issues/26) — Slice 3: security + permission gates + remote CI |
+| BL-007e | [#27](https://github.com/mikebrowne/michael-os/issues/27) — Slice 4: rollback & promotion ledger UX |
+| BL-007f | [#28](https://github.com/mikebrowne/michael-os/issues/28) — Slice 5: controlled restart flow |
+| BL-007g | [#29](https://github.com/mikebrowne/michael-os/issues/29) — Slice 6: north-star verification |
+| BL-007h | [#30](https://github.com/mikebrowne/michael-os/issues/30) — Rejection & remediation loop + approval audit (red/no path) |
 | BL-008 | [#6](https://github.com/mikebrowne/michael-os/issues/6) |
 | BL-009 | [#7](https://github.com/mikebrowne/michael-os/issues/7) |
 | BL-010 | [#8](https://github.com/mikebrowne/michael-os/issues/8) |
 
-**Next build:** [BL-007 / issue #5](https://github.com/mikebrowne/michael-os/issues/5) — Staging, review, and promotion (Phase 5). Phase 4b (Necessity Reviewer, multi-route chat) tracked separately.
+**Next build:** [BL-007 / issue #5](https://github.com/mikebrowne/michael-os/issues/5) — Staging, review, and promotion (Phase 5). Decisions locked in the [Phase 5 grill notes](./prds/phase-5-staging-review-promotion.grill.md), [north star](./phase-5-staging-review-promotion.md), [PRD](./prds/phase-5-staging-review-promotion.md), and ADRs [0007](./adr/0007-pr-staging-promotion.md)/[0008](./adr/0008-qa-engineer-verification.md). Phase 4b (Necessity Reviewer, multi-route chat) tracked separately.
 
 ## Key docs
 
@@ -57,6 +65,7 @@ Stable backlog IDs (`BL-NNN`) live in issue titles, e.g. `[BL-004] First end-to-
 | [phase-2-engineering-loop.md](./phase-2-engineering-loop.md) | Phase 2 north star, grill decisions, delivery slices |
 | [phase-3-engineering-department.md](./phase-3-engineering-department.md) | Phase 3 north star, department roster, delivery slices |
 | [phase-4-delegation-jobs.md](./phase-4-delegation-jobs.md) | Phase 4 north star, jobs, observability, delegation |
+| [phase-5-staging-review-promotion.md](./phase-5-staging-review-promotion.md) | Phase 5 north star, staging, QA Engineer gates, promotion, rollback, restart |
 | [CONTEXT.md](../CONTEXT.md) | Domain glossary |
 | [AGENTS.md](../AGENTS.md) | Operating rules for humans and agents |
 | [init.md](../init.md) | Full build plan (Phases 0–14) |
@@ -106,3 +115,5 @@ gh issue list
 - [0004 — Engineering Department structure](./adr/0004-engineering-department-structure.md)
 - [0005 — Agentic orchestration layer](./adr/0005-agentic-orchestration-layer.md)
 - [0006 — Gateway session memory](./adr/0006-gateway-session-memory.md)
+- [0007 — PR-based staging, promotion & rollback](./adr/0007-pr-staging-promotion.md)
+- [0008 — QA Engineer verification model](./adr/0008-qa-engineer-verification.md)
