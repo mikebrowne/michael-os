@@ -1,0 +1,40 @@
+---
+description: Check the framework before building your own primitive
+alwaysApply: true
+---
+
+# Framework-first
+
+Before building a custom primitive, check whether the framework or an installed library already
+provides it. Prefer reusing the framework with a thin domain layer over hand-rolling.
+
+## When this applies
+
+Especially for generic infrastructure: queues, job/worker systems, schedulers, event buses /
+pub-sub, persistence/stores, retries, delegation/multi-agent routing, structured output parsing,
+tracing/telemetry, and evals.
+
+## Required steps before hand-rolling
+
+1. **Check the docs** for the framework (e.g. Mastra) — search for the capability by name.
+2. **Check the installed version**, not just the latest docs — confirm the API exists in the version
+   in `package.json` / `node_modules` (APIs get added and deprecated; e.g. Mastra `.network()` is
+   deprecated in favor of supervisor agents).
+3. **Prefer reuse.** If the framework covers it, use it and keep a **thin anti-corruption wrapper** so
+   future version churn is a localized edit (reversibility).
+4. **Only hand-roll when there is a genuine gap.** Document the specific missing capability that
+   justified building custom, in the PRD/grill notes and near the code.
+
+## Domain layer is still ours
+
+Reusing a framework primitive does not mean leaking framework concepts into the domain. Keep our
+nouns (Issue / WorkItem / Job, agents, skills) and project them onto framework objects (e.g.
+`jobRegistry` / `JobRecord` as a projection over Mastra runs).
+
+## Examples (MichaelOS)
+
+- Delegation → Mastra **supervisor agents** (not a custom delegate tool).
+- Async jobs / durability → Mastra **background tasks** (not a custom worker loop + claim/heartbeat).
+- Events → Mastra **PubSub** (not a bespoke emitter).
+- Tracing/evals → Mastra **observability / scorers** (not a custom trace format) — with our own
+  correlated domain JSONL on top.

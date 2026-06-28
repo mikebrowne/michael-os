@@ -14,6 +14,7 @@ Operating rules for humans and agents working in the MichaelOS repository.
 8. **Build thin vertical slices** — Complete loops first, then deepen each layer.
 9. **Code for deterministic work; LLMs for judgment** — Repeatable operations in code; judgment calls to models.
 10. **Everything should be reversible** — Git, tests, CI, rollback, promotion history.
+11. **Framework-first** — Before hand-rolling a primitive (queue, store, scheduler, eventing, delegation, tracing, evals), check the framework docs and the *installed* version; reuse with a thin wrapper and only build custom for a documented gap. See `.cursor/rules/framework-first.mdc`.
 
 ## Dangerous capabilities (approval required)
 
@@ -37,6 +38,9 @@ Use terms from `CONTEXT.md` verbatim:
 - **Demo vault** — fake, public-safe sample at `examples/demo-vault/`
 - **Operator** — the single human who runs the harness
 - **Run log** — structured JSONL records in gitignored `./.logs/`
+- **Trace** — richer Mastra AI-tracing telemetry in the gitignored `.mastra/` store (redacted)
+- **Issue / WorkItem / Job** — public feature identity (GitHub) / private feature lifecycle (`stateDir`) / one bounded delegated traced task (`jobRegistry`)
+- **Authority (management / employee)** — clearance for dangerous tools; only management (Engineering Lead) may use them
 
 ## Public-safe boundary
 
