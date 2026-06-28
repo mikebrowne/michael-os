@@ -49,8 +49,44 @@ A **deterministic** unit of work — a script or CLI call with a fixed body — 
 _Avoid_: "action", "function" (when meaning the registered unit), "skill" (a skill is judgment, not fixed logic)
 
 **Skill**:
-A **probabilistic** unit of work — an English SOP (prompt) that packages judgment and may call tools, workflows, or other skills. Both its *dispatch* and its *body* are probabilistic. Skills are the home for irreducible judgment and the reviewable, English contract for behavior.
+A **probabilistic** unit of work — an English SOP (prompt) that packages judgment and may call tools, workflows, or other skills. Both its *dispatch* and its *body* are probabilistic. Skills are the home for irreducible judgment and the reviewable, English contract for behavior. As of Phase 6 a skill is a first-class object: a `SKILL.md` **bundle** ([Agent Skills spec](https://agentskills.io)) discovered, validated, scoped, permissioned, and loaded on demand via the **`skillRegistry`** wrapper over Mastra Agent Skills. Its deterministic muscle comes from **promoted Tools/Workflows built by the Engineering Department**, never code embedded in the skill.
 _Avoid_: "prompt" (a skill is a packaged, reusable prompt + resources)
+
+**Skill bundle**:
+A skill's directory — `skills/<name>/SKILL.md` (YAML frontmatter + markdown SOP body) plus optional `references/`, `examples/`, and `evals/` subfolders. Reference material is disclosed **on demand** (progressive), never crammed into the index. A bundle's `scripts/` folder (if present) is **not executed** — deterministic muscle lives in promoted Tools.
+_Avoid_: "skill file" (the bundle is the directory, not just `SKILL.md`)
+
+**Skill index**:
+The always-present list of every discovered skill's `name` + `description`, injected into an agent (format `markdown`) so the model knows what exists; full bodies + references load **on demand** via Mastra's `skill` / `skill_search` / `skill_read` tools. Built by `skillRegistry` over `workspace.skills`.
+_Avoid_: "catalog" (loosely); never confuse the lightweight index with the loaded body.
+
+**Progressive loading / activation**:
+Exposing only the **skill index** by default and loading a skill's full body when the model calls the `skill` tool (**activation**). Replaces the pre-Phase-6 eager concat of all bodies into the prompt. Emits `skill.activated` telemetry.
+_Avoid_: "eager loading", "preloading" (the whole point is on-demand)
+
+**Skill scope**:
+A skill's declared audience — `shared` (all agents, via `workspace.skills`) or `[agent-id, …]` (specific agents, via per-agent `Agent.skills`). Declared in frontmatter `metadata` and the **single source of truth**, projected onto Mastra by `skillRegistry`; `agentRegistry.ts` is a derived, validated view.
+_Avoid_: "visibility", "access" (use "scope"; permission is the separate `allowed-tools` check)
+
+**Skill permission (authority rule)**:
+A skill declares `allowed-tools` / `allowed-workflows`; it may only be injected into an agent whose **authority** covers every tool in `allowed-tools`. A skill touching a `management`-only dangerous tool can never be injected into an `employee` agent — enforced at validation **and** injection. See ADR 0010.
+_Avoid_: "skill role" (authority is what it may invoke, scope is who sees it)
+
+**Skill Engineer**:
+The **employee** agent (`skill-engineer`) that owns the skill lifecycle — create / edit / validate / EDD-test / deprecate / archive — under a **lighter gate** (validate + permission-check + commit), bypassing the full QA pipeline that *code* requires. It cannot build new deterministic tools itself; it files a `request-tool-build` Issue handoff to the **Engineering Lead** (management), who builds them through the promotion loop. Authoring skills (`write-skill`, `skill-eval-design`) are scoped only to it.
+_Avoid_: "Skill Author" (reserved for the *autonomous* Phase 7 authoring agent), "Skill Steward"
+
+**`skillRegistry` / `SkillRegistration`**:
+The thin **anti-corruption wrapper** over Mastra Agent Skills (same pattern as `jobRegistry`/`JobRecord`, `promotionRegistry`/`PromotionRecord`): discovers `skills/**/SKILL.md`, validates frontmatter, reads `scope`/`allowed-tools`, and **projects** each skill onto Mastra's workspace/agent skills. Keeps framework churn a localized edit.
+_Avoid_: bare "registry"/"record" (domain-qualify per naming conventions)
+
+**Skill eval / EDD**:
+Eval-driven development of a skill: its `evals/` cases (`{ input, expected behavior }`) scored by **Mastra scorers** via `eval-skill` / `npm run eval:skills` (local-only, real model). Write the eval first, watch it fail, then write the SOP until it passes — the red/green ratchet applied to judgment.
+_Avoid_: "skill unit test" (skills are judgment; their tests are evals)
+
+**Test mode / mock**:
+A `testMode` flag propagated through Mastra's `requestContext` during skill evals. When on, any **side-effecting** tool (external write, message-send) returns a **declared mock/fixture** instead of performing the side effect, and marks telemetry `mocked: true`. The mock belongs to the **tool** (deterministic, reviewed), never invented by the skill/LLM. Full enforcement (every side-effecting tool ships a mock) lands in Phase 7.
+_Avoid_: "dry run" (loosely), "stub" (the mock is a declared part of the tool)
 
 **Workflow**:
 A **deterministic ordering** of steps (tools and/or skills) — fixed orchestration. The sequence is known in advance; individual steps may still be probabilistic, but the ordering is not.

@@ -176,17 +176,31 @@ Every generated change is staged, reviewed, validated, and promotable.
 
 Skills become first-class reusable system objects.
 
+> **Grilled 2026-06-28 — framework-first pivot.** The installed Mastra (`@mastra/core@^1.46`) already
+> ships the full **Agent Skills** system (spec format, validation, index, progressive loading, shared
+> vs agent-specific scoping, versioning). Phase 6 **adopts Mastra Agent Skills behind a thin
+> `skillRegistry` wrapper** and builds only the domain gaps: authority/permission gating,
+> Job-correlated telemetry, the **Skill Engineer** agent, and skill **EDD**. See
+> [docs/phase-6-skill-platform.md](./docs/phase-6-skill-platform.md),
+> [ADR 0009](./docs/adr/0009-mastra-agent-skills-substrate.md),
+> [ADR 0010](./docs/adr/0010-skill-permission-lifecycle.md).
+
 ### User Stories
 
-* YAML skill format
-* Shared skills
-* Agent-specific skills
-* Skill index
-* Progressive loading
-* Skill permissions
-* Script-backed skills
-* Skill validation
-* Skill telemetry
+* YAML skill format → Mastra `SKILL.md` + frontmatter (domain fields in `metadata`)
+* Shared skills → `workspace.skills`
+* Agent-specific skills → per-agent `Agent.skills` + frontmatter `scope`
+* Skill index → `workspace.skills.list/search`, injected as `markdown`
+* Progressive loading → Mastra `skill` / `skill_search` / `skill_read` tools (retire eager concat)
+* Skill permissions → `allowed-tools` ⊆ agent authority (enforced at validation + injection)
+* Script-backed skills → skills **invoke** Engineering-built, promoted Tools/Workflows (muscle is not embedded; `scripts/` not executed)
+* Skill validation → `validateSkillMetadata` wrapper + scope/permission checks
+* Skill telemetry → five Job-correlated `skill.*` run-log events
+* **Skill Engineer** agent (employee) + lighter-gate lifecycle (skill changes bypass full QA)
+* Skill **EDD** (`evals/` + Mastra scorers + `npm run eval:skills`) + tool `testMode`/mock
+
+Deferred to Phase 7: autonomous authoring agents (Skill Author / Tool Author / Hiring),
+"adapt from external skill", and automated enforcement that every side-effecting tool ships a mock.
 
 # Phase 7: Authoring Agents
 
@@ -203,6 +217,8 @@ The system can safely extend itself.
 * Staged promotion
 * Engineering review
 * Safe activation
+
+Note (from Phase 6 grill): the **Tool Author** must enforce the **tool test-mode/mock contract** — every tool with side effects (external writes, message-sending) must support a `testMode` flag (propagated via `requestContext`) that returns a declared mock instead of performing the side effect, ship that mock as part of the tool, and include a test. Phase 6 establishes the `testMode` channel + contract + a fixture; Phase 7 makes the enforcement automated (e.g. a CI/permission-scan check that side-effecting tools declare a mock). Captured here so it is not lost.
 
 Note: I had a though about adding agents w/o needing to restart the gateway. What if an agent can just be a YAML like file and we have a set of code that just creates the agents based on the YAML? That way we aren't changing any .ts files. By doing this, it may be easier to have the system spin up its own agents.
 

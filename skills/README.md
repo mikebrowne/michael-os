@@ -24,6 +24,18 @@ Department roster is defined in `src/mastra/agentRegistry.ts`. See [docs/phase-3
 
 See [docs/phase-2-engineering-loop.md](../docs/phase-2-engineering-loop.md) for the full north star and grill decisions.
 
-## Phase 6 (deferred)
+## Phase 6 — Skill Platform
 
-YAML format, shared index, progressive loading, permissions, and script-backed skills remain out of scope until the Phase 2 loop is proven in production use.
+Skills become **first-class objects** on top of **Mastra Agent Skills** ([spec](https://agentskills.io)), wrapped by `src/skills/skillRegistry.ts` (which replaces the hand-rolled `skillLoader.ts` + eager prompt concat). A skill is a `SKILL.md` **bundle** (frontmatter + SOP body, optional `references/` / `examples/` / `evals/`); bodies load **on demand** (progressive loading), not all-at-once.
+
+Frontmatter domain fields ride in the spec's `metadata` map:
+
+- `scope` — `shared` or `[agent-id, …]` (single source of truth, projected onto Mastra).
+- `allowed-tools` / `allowed-workflows` — must be ⊆ the agent's authority (enforced at validation + injection).
+- `tags` / `category`, `status` (`active` / `draft` / `deprecated`), `version`.
+
+The **Skill Engineer** (`skill-engineer`, employee) authors/edits/validates/EDD-tests skills under a **lighter gate** (validate + permission-check + commit) that bypasses the full QA pipeline; declaring a *new dangerous tool* still requires operator acknowledgement. Deterministic muscle (TS scripts, CLIs, MCPs) is built as **Tools/Workflows by the Engineering Lead** via the promotion loop — never embedded in a skill (a bundle's `scripts/` folder is not executed).
+
+Skill testing is **EDD**: `evals/` cases scored by Mastra scorers via `npm run eval:skills` (local-only). Every skill touchpoint emits Job-correlated telemetry (`skill.activated`, `skill.tool_invoked`, `skill.validated`, `skill.changed`, `skill.activation_failed`).
+
+See [docs/phase-6-skill-platform.md](../docs/phase-6-skill-platform.md), [ADR 0009](../docs/adr/0009-mastra-agent-skills-substrate.md), and [ADR 0010](../docs/adr/0010-skill-permission-lifecycle.md).

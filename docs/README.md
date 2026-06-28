@@ -52,11 +52,21 @@ Stable backlog IDs (`BL-NNN`) live in issue titles, e.g. `[BL-004] First end-to-
 | BL-007f | [#28](https://github.com/mikebrowne/michael-os/issues/28) — **closed** — Slice 5: controlled restart flow |
 | BL-007g | [#29](https://github.com/mikebrowne/michael-os/issues/29) — **closed** — Slice 6: north-star verification |
 | BL-007h | [#30](https://github.com/mikebrowne/michael-os/issues/30) — **closed** — Rejection & remediation loop + approval audit (red/no path) |
-| BL-008 | [#6](https://github.com/mikebrowne/michael-os/issues/6) |
+| BL-008 | [#6](https://github.com/mikebrowne/michael-os/issues/6) — Phase 6 Skill Platform epic (grilled 2026-06-28) |
+| BL-008a | [#31](https://github.com/mikebrowne/michael-os/issues/31) — Slice 0: ADRs 0009/0010 + vocabulary |
+| BL-008b | [#32](https://github.com/mikebrowne/michael-os/issues/32) — Slice 1: Mastra Agent Skills substrate + `skillRegistry` + migration |
+| BL-008c | [#33](https://github.com/mikebrowne/michael-os/issues/33) — Slice 2: scope + permission/authority enforcement |
+| BL-008d | [#34](https://github.com/mikebrowne/michael-os/issues/34) — Slice 3: skill telemetry (five `skill.*` events) |
+| BL-008e | [#35](https://github.com/mikebrowne/michael-os/issues/35) — Slice 4: Skill Engineer agent + lighter-gate lifecycle |
+| BL-008f | [#36](https://github.com/mikebrowne/michael-os/issues/36) — Slice 5: skill EDD harness + tool test-mode/mock |
+| BL-008g | [#37](https://github.com/mikebrowne/michael-os/issues/37) — Slice 6: north-star verification |
 | BL-009 | [#7](https://github.com/mikebrowne/michael-os/issues/7) |
 | BL-010 | [#8](https://github.com/mikebrowne/michael-os/issues/8) |
+| BL-011 | [#38](https://github.com/mikebrowne/michael-os/issues/38) — deferred: adapt-from-external-skill |
+| BL-012 | [#39](https://github.com/mikebrowne/michael-os/issues/39) — deferred: aggregate skill metrics |
+| BL-013 | [#40](https://github.com/mikebrowne/michael-os/issues/40) — Phase 7: enforce tool test-mode/mock contract |
 
-**Next build:** [BL-008 / issue #6](https://github.com/mikebrowne/michael-os/issues/6). Phase 5 (BL-007) shipped 2026-06-28 — see [Phase 5 north star](./phase-5-staging-review-promotion.md).
+**Next build:** [BL-008 / issue #6](https://github.com/mikebrowne/michael-os/issues/6) — Phase 6 Skill Platform (slices `BL-008a..g`). Phase 5 (BL-007) shipped 2026-06-28 — see [Phase 5 north star](./phase-5-staging-review-promotion.md). Phase 6 grilled 2026-06-28 — see [Phase 6 north star](./phase-6-skill-platform.md).
 
 ## Key docs
 
@@ -66,6 +76,7 @@ Stable backlog IDs (`BL-NNN`) live in issue titles, e.g. `[BL-004] First end-to-
 | [phase-3-engineering-department.md](./phase-3-engineering-department.md) | Phase 3 north star, department roster, delivery slices |
 | [phase-4-delegation-jobs.md](./phase-4-delegation-jobs.md) | Phase 4 north star, jobs, observability, delegation |
 | [phase-5-staging-review-promotion.md](./phase-5-staging-review-promotion.md) | Phase 5 north star, staging, QA Engineer gates, promotion, rollback, restart |
+| [phase-6-skill-platform.md](./phase-6-skill-platform.md) | Phase 6 north star, Mastra Agent Skills substrate, Skill Engineer, EDD, telemetry |
 | [CONTEXT.md](../CONTEXT.md) | Domain glossary |
 | [AGENTS.md](../AGENTS.md) | Operating rules for humans and agents |
 | [init.md](../init.md) | Full build plan (Phases 0–14) |
@@ -117,3 +128,5 @@ gh issue list
 - [0006 — Gateway session memory](./adr/0006-gateway-session-memory.md)
 - [0007 — PR-based staging, promotion & rollback](./adr/0007-pr-staging-promotion.md)
 - [0008 — QA Engineer verification model](./adr/0008-qa-engineer-verification.md)
+- [0009 — Mastra Agent Skills substrate](./adr/0009-mastra-agent-skills-substrate.md)
+- [0010 — Skill permission/authority & lighter-gate lifecycle](./adr/0010-skill-permission-lifecycle.md)
