@@ -109,8 +109,8 @@ Using the **Cursor SDK harness as a codebase *reasoning* engine** — mapping st
 _Avoid_: "Cursor = the SWE" (it is a shared capability with two modes), "codebase RAG" (we reuse Cursor's engine, not hand-roll retrieval)
 
 **Steerable build / plan-and-slice**:
-The Phase 6.5 build model: the executor runs as a **durable Cursor session** (`Agent.create` / `agent.send` / `Agent.resume`) instead of one-shot `Agent.prompt`, so a build can be **streamed, interrupted/redirected, inspected, and resumed after a restart**. Because the SDK has **no plan-mode toggle** (an IDE-only construct), the **Engineering Lead owns the plan/checklist** and dispatches **one bounded slice per `send`**, verifying each before advancing; the Software Engineer stays a dumb, bounded executor. See ADR 0011.
-_Avoid_: "plan mode" (the SDK has none; the EL provides it), "background queue" (steerable ≠ fire-and-forget)
+The Phase 6.5 build model: the executor runs as a **durable Cursor session** (`Agent.create` / `agent.send` / `Agent.resume`) instead of one-shot `Agent.prompt`, so a build can be **streamed, interrupted/redirected, inspected, and resumed after a restart**. The SDK exposes a **native conversation mode** (`mode: "agent" | "plan"`, settable per `send` via `SendOptions.mode`), so we use `mode: "plan"` for the plan turn and `mode: "agent"` for slice execution within one session. The **Engineering Lead owns the plan/checklist** and dispatches **one bounded slice per `send`**, verifying each before advancing — because judgment/authority/telemetry/gates belong in the EL, not because the SDK lacks a plan mode. The Software Engineer stays a dumb, bounded executor. See ADR 0011.
+_Avoid_: "background queue" (steerable ≠ fire-and-forget); do not claim the SDK lacks plan mode (it exposes `AgentModeOption`)
 
 **Staging / staged change**:
 A green build pushed as a `feature/<slug>-<runId>` branch with an open **GitHub pull request**; the PR diff is the reviewable **staged diff**. Staging never touches `main`. It is the input to verification and the thing a **Promotion** later merges.

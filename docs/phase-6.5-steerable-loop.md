@@ -33,22 +33,50 @@ change is migrating the `CodingExecutor` to a **durable session**:
 This one change unlocks plan-mode, slice execution, streaming, interrupt, and restart-survival
 together. See [ADR 0011](./adr/0011-steerable-builds-plan-and-slice.md).
 
-## Plan/agent mode — the SDK has none; the EL provides it
+## Plan/agent mode — native in the SDK; the EL owns the checklist
 
-The Cursor **SDK** exposes no Plan Mode / Agent Mode toggle (that is an IDE-only construct). We
-replicate the IDE's plan→act discipline by **putting the plan at the harness level**:
+The Cursor **SDK exposes a native conversation mode**: `AgentModeOption = "agent" | "plan"`, settable
+at `Agent.create` (`AgentOptions.mode`) **and per send** (`SendOptions.mode`). This is the same Plan
+Mode shipped in the IDE and CLI (`Shift+Tab` / `/plan` / `--mode=plan`), available headlessly. Per the
+[Cursor docs](https://cursor.com/docs/agent/plan-mode), in plan mode the agent researches the codebase,
+**asks clarifying questions**, and produces a **reviewable markdown plan with a to-do list** before
+writing any code.
 
-1. **Plan turn** — `agent.send("produce a step plan + integration map; do NOT edit files")`. Read-only
-   by environment (disposable worktree), output captured as the EL's checklist.
-2. **Operator/EL approves** the checklist.
-3. **Slice turns** — one `agent.send("implement slice N")` per checklist item, each **verified**
-   (tests / gates) before advancing.
-4. **Drift** → `run.cancel()` + a corrective `send`.
+### How it surfaces in the SDK (verified against `@cursor/sdk` v1.0.22)
 
-The Software Engineer stays a **dumb, bounded executor**; judgment (the plan, the verification, the
-re-plan) lives in the **Engineering Lead**, where authority, telemetry, and gates already are. The
-hash-locked acceptance test remains the per-feature "done" gate; the checklist sits above it as the
-per-slice plan.
+The mechanism is concrete, not prose discipline:
+
+- A plan-mode turn emits a **`createPlan` tool call** whose `args.plan` is the **markdown plan**
+  (`CreatePlanToolCall` / `CreatePlanArgsSchema` in the SDK's tool-call types).
+- Progress is tracked via **`updateTodos`** tool calls — a checklist of items with status
+  `pending | inProgress | completed | cancelled` (`UpdateTodosToolCall` / `TodoItemSchema`).
+- We capture both by tailing `run.stream()` for `SDKToolUseMessage` (`type: "tool_call"`,
+  `name: "createPlan" | "updateTodos"`, `status: "completed"`), or by reading `run.conversation()`
+  after `run.wait()`. The captured `plan` markdown **is** the Engineering Lead's checklist.
+
+### The loop
+
+Do **both steps on one durable `Agent` instance** so the plan turn's codebase research and the answers
+to its clarifying questions carry into the build turn (the key advantage over one-shot `Agent.prompt`):
+
+1. **Plan turn(s)** — `agent.send(planPrompt, { mode: "plan" })`. Plan mode may **ask clarifying
+   questions** (returned as assistant text); the EL answers them from the PRD / Issue / comprehension
+   context (instructing "make reasonable assumptions and state them" to minimize round-trips) or
+   **escalates to the operator** when a question is genuinely blocking. Loop `send`s in `mode: "plan"`
+   until a `createPlan` arrives. Persist the plan markdown to the WorkItem `stateDir` (and optionally
+   mirror to `.cursor/plans/`). Belt-and-suspenders: prompt **"do not write any code"** (Cursor's own
+   recommended planning prompt) and run in a **disposable worktree** so any stray write is discarded.
+2. **Operator/EL approves** (and may edit) the checklist.
+3. **Build turn(s)** — `agent.send(buildPrompt + approvedPlan, { mode: "agent" })` on the **same**
+   agent, one bounded slice per `send`, each **verified** (tests / gates) before advancing. Tail
+   `updateTodos` for live progress/telemetry.
+4. **Drift** → `run.cancel()` + a corrective `send`. **Restart** → `Agent.resume(agentId)`.
+
+The native mode is the *mechanism*; the **plan still lives in the Engineering Lead**. We keep the
+EL-owned checklist + per-slice verification not because the SDK lacks plan mode (it does not), but
+because that is where **judgment, authority, telemetry, and gates** belong — the SWE stays a **dumb,
+bounded executor**. The hash-locked acceptance test remains the per-feature "done" gate; the checklist
+sits above it as the per-slice plan.
 
 ## Leverage Cursor for reasoning, not only writing
 

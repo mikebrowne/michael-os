@@ -271,10 +271,13 @@ engineering work. This is the immediate next build after Phase 6.
 > [ADR 0011](./docs/adr/0011-steerable-builds-plan-and-slice.md),
 > [ADR 0012](./docs/adr/0012-cursor-comprehension-mode.md).
 
-> **Plan/agent mode.** The Cursor **SDK** has no plan-mode toggle (that is an IDE-only construct).
-> We get the same behavior by having the **Engineering Lead own the plan/checklist** and dispatching
-> **one bounded slice per `agent.send`**, verifying each before advancing. The SWE stays a dumb,
-> bounded executor; judgment lives in the EL (where authority, telemetry, and gates already are).
+> **Plan/agent mode.** The Cursor **SDK exposes a native conversation mode** —
+> `mode: "agent" | "plan"` (`AgentModeOption`), settable at `Agent.create` (`AgentOptions.mode`) **and
+> per `send`** (`SendOptions.mode`). So we use `mode: "plan"` for the plan turn and `mode: "agent"` for
+> slice execution, switchable within one durable session (the IDE plan→act flow, natively). The
+> **Engineering Lead still owns the plan/checklist** and dispatches **one bounded slice per `send`**,
+> verifying each before advancing — not because the SDK lacks plan mode, but because judgment,
+> authority, telemetry, and gates belong in the EL. The SWE stays a dumb, bounded executor.
 
 > **Leverage Cursor for reasoning, not only writing.** Cursor's harness is a *codebase reasoning
 > engine*. Expose it in two authority-gated modes behind the `CodingExecutor` seam: a **read-only

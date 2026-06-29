@@ -14,9 +14,12 @@ existing **implementation mode** (writes code). Comprehension mode has **no side
 therefore **employee-safe**, so many agents may hold it (Engineering Lead planning, the Debugger,
 the Skill Engineer's "does a tool exist before `request-tool-build`," the Engagement Manager's reuse
 triage); implementation mode writes code and stays **management-gated** behind the dangerous-tool
-approval flow. Three guardrails make it safe and cheap: **(a) read-only is enforced by the
-environment** — comprehension runs in a disposable worktree whose writes are discarded — not merely
-by the prompt; **(b) cite-and-verify** — comprehension output is *judgment*, so it must cite the
+approval flow. Comprehension runs the SDK in native **`mode: "plan"`** (`AgentModeOption`), which is
+designed to reason/plan without implementing — a natural fit for read-only reasoning. Three guardrails
+make it safe and cheap: **(a) read-only is enforced by the environment** — comprehension runs in a
+disposable worktree whose writes are discarded — not merely by the prompt or by trusting `mode: "plan"`
+(verify its exact write behavior in the installed version); **(b) cite-and-verify** — comprehension
+output is *judgment*, so it must cite the
 files/symbols it found and the harness then **deterministically verifies** the citation (path/symbol
 exists), converting a fuzzy claim into a checkable one (the same red/green discipline as acceptance
 hashes); **(c) cost discipline via the determinism ratchet** — every SDK call is a full agent run
