@@ -100,6 +100,18 @@ _Avoid_: "child process", "worker" (those are execution mechanics, not the deleg
 The **employee** sub-agent (Phase 5 upgrade of the Code Reviewer) that runs the **verification workflow** over a staged change and returns one composite verdict. A *role* that accretes QA skills over time; its first gates are CI, code review, security review, and permission review. It may **assess** but structurally **cannot** stage, promote, roll back, or restart (only management — the Engineering Lead — can, with operator approval).
 _Avoid_: "reviewer" (the QA Engineer owns more than review), "tester" (it orchestrates judgment + deterministic checks)
 
+**Engagement Manager**:
+The coordinator agent (Phase 4b) that is the **conversational front door** for engineering work: it takes the operator's request, runs **build-vs-reuse triage** (does something already exist?), and **routes** to the right specialist (Engineering Lead, Skill Engineer, …). The professional-agency rename of the old **"Ponytail" / Necessity Reviewer**. It is the **engineering-scoped** precursor to the org-wide **Chief of Staff** (Phase 8): the Engagement Manager does intake + simple routing + reuse triage; the Chief of Staff does intelligent, org-wide context routing and delegation summaries.
+_Avoid_: "Ponytail", "router" (loosely), "Chief of Staff" (that is the broader Phase 8 role); never collapse the two.
+
+**Codebase comprehension (Cursor read-only mode)**:
+Using the **Cursor SDK harness as a codebase *reasoning* engine** — mapping structure / "what connects to what" and **discovering whether something is already built** — rather than only writing code. Exposed as a **read-only mode** behind the `CodingExecutor` seam: no writes (enforced by a disposable worktree, not just the prompt), **employee-safe** so many agents may hold it (EL planning, Debugger, Skill Engineer, the Engagement Manager's reuse triage). Output is judgment and must **cite files/symbols** the harness then **deterministically verifies**. Reserve it for judgment-heavy multi-hop questions; use `Grep`/registries for cheap lookups (the determinism ratchet). Contrast **implementation mode** — the existing `run-build` that writes code and stays **management-gated**. See ADR 0012.
+_Avoid_: "Cursor = the SWE" (it is a shared capability with two modes), "codebase RAG" (we reuse Cursor's engine, not hand-roll retrieval)
+
+**Steerable build / plan-and-slice**:
+The Phase 6.5 build model: the executor runs as a **durable Cursor session** (`Agent.create` / `agent.send` / `Agent.resume`) instead of one-shot `Agent.prompt`, so a build can be **streamed, interrupted/redirected, inspected, and resumed after a restart**. Because the SDK has **no plan-mode toggle** (an IDE-only construct), the **Engineering Lead owns the plan/checklist** and dispatches **one bounded slice per `send`**, verifying each before advancing; the Software Engineer stays a dumb, bounded executor. See ADR 0011.
+_Avoid_: "plan mode" (the SDK has none; the EL provides it), "background queue" (steerable ≠ fire-and-forget)
+
 **Staging / staged change**:
 A green build pushed as a `feature/<slug>-<runId>` branch with an open **GitHub pull request**; the PR diff is the reviewable **staged diff**. Staging never touches `main`. It is the input to verification and the thing a **Promotion** later merges.
 _Avoid_: "deploy", "release" (those are later/other concepts)

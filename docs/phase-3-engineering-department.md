@@ -31,11 +31,11 @@ loaded onto an agent.
 | **Engineering Lead** | `mastra-agent` | shipped (P2) | all engineering tools; loads 5 skills | **sole front door** |
 | **Software Engineer** (a.k.a. SWE / programmer) | `external-executor` (Cursor, `runAgentBuild`) | shipped (P2) | `run-build` / `build-handoff` | invoked by EL; never chatted with directly |
 | **Spec / Planning / Test** | `skill` on EL | shipped (P2) | `grill-me-with-docs`, `to-prd`, `research-write-tests` | inside EL loop |
-| **Code Reviewer** | `mastra-agent` + `code-review` skill | **NEXT HIRE (build)** | reads diff/PRD/acceptance test; emits verdict | called by EL **post-green, pre-ship** |
-| **Necessity Reviewer** (Ponytail) | `mastra-agent` + skill | **deferred → P4** | "should we build this?" verdict | n/a yet |
-| **Debugger** | `skill`/agent | deferred | reactive; Cursor already does inner RED→GREEN | n/a |
-| **Security** | `skill`/agent | deferred → P5 | overlaps Reviewer at small scale | n/a |
-| **DevOps** | ops slice (not an agent) | **build (always-on gateway)** | launchd service | the daemon itself |
+| **Code Reviewer** | `mastra-agent` + `code-review` skill | shipped (→ QA Engineer, P5) | reads diff/PRD/acceptance test; emits verdict | called by EL **post-green, pre-ship** |
+| **Engagement Manager** (was "Necessity Reviewer" / Ponytail) | `mastra-agent` + skill | **rescoped → P4b** | intake + build-vs-reuse triage + routing | engineering front door / router (precursor to Chief of Staff, P8) |
+| **Debugger** | `skill`/agent | **rescoped → P4c** | root-cause across files; consumes the P6.5 inspection + comprehension tooling | n/a yet |
+| **Security** | `skill`/agent | **partially shipped** as the QA security gate (P5); dedicated agent → P4c | overlaps Reviewer at small scale | n/a yet |
+| **DevOps** | ops slice (not an agent) | shipped (always-on gateway) | launchd service | the daemon itself |
 
 ### Naming note: "Implementation Agent" retired
 

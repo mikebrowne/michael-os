@@ -119,8 +119,9 @@ Phase 7 / later: autonomous authoring agents (Skill Author / Tool Author / Hirin
 self-activation; **"adapt from external skill"** (advanced `create-skill` over Mastra's `external`
 source); **aggregate skill metrics / dashboards** (deferred but documented); **automated enforcement
 that every side-effecting tool ships a mock + test** (Phase 7 Tool Author — documented there);
-**Phase 4b** multi-agent chat + router/"ponytail" agent (planned shortly after Phase 6); skill search
-tuning, external publishing, and versioning workflows beyond Mastra's defaults.
+**Phase 4b** multi-agent chat + the **Engagement Manager** coordinator (rename of the old "Ponytail"
+necessity reviewer; planned shortly after Phase 6 / Phase 6.5); skill search tuning, external
+publishing, and versioning workflows beyond Mastra's defaults.
 
 # Verification Commands
 

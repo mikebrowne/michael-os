@@ -119,21 +119,28 @@ Prove one complete engineering loop.
 
 Create a small but capable Engineering Department.
 
+> **Delivered scope (shipped 2026-06-27).** Phase 3 shipped the **agent registry**, the
+> **Engineering Lead** (management), the **QA Engineer / Code Reviewer** (employee), the **Software
+> Engineer** as an explicit `external-executor` (Cursor), the seed engineering skills, and the
+> always-on gateway (DevOps slice). The **broader roster** below (Debugger / Security / DevOps as
+> agents, plus the Spec/Planning/Test split) and the **necessity/reuse reviewer (formerly "Ponytail")**
+> were **deferred and rescoped**: the reviewer becomes the **Engagement Manager** in **Phase 4b**, and
+> the roster expansion is **Phase 4c**. Phase 6 changes the calculus — many roles are now *skills on an
+> existing agent*, so 4c starts with an explicit "agent vs skill" decision per role.
+
 ### User Stories
 
-* Seed engineering skills
-* Skill folder convention
-* Ponytail feature necessity review
-* Matt Pocock inspired skills
-* Agent registry
-* Spec Agent
-* Planning Agent
-* Implementation Agent
-* Test Agent
-* Reviewer Agent
-* Debugger Agent
-* Security Agent
-* DevOps Agent
+* Seed engineering skills — **done**
+* Skill folder convention — **done**
+* Matt Pocock inspired skills — **done**
+* Agent registry — **done**
+* Reviewer Agent (→ QA Engineer) — **done**
+* Implementation Agent (→ Software Engineer / Cursor `external-executor`) — **done**
+* Necessity/reuse reviewer (formerly "Ponytail") → **Engagement Manager, rescoped to Phase 4b**
+* Spec Agent / Planning Agent / Test Agent → **rescoped to Phase 4c (agent-vs-skill decision)**
+* Debugger Agent → **rescoped to Phase 4c** (completes the steerable-loop diagnosis surface)
+* Security Agent → **partially shipped as the QA security gate (Phase 5); dedicated agent → Phase 4c**
+* DevOps Agent → **shipped as the always-on gateway/daemon slice**
 
 # Phase 4: Sessions, Delegation, and Job System
 
@@ -153,6 +160,51 @@ Allow bounded delegation with full observability.
 * Structured outputs
 * Model selection
 * Full traceability
+
+# Phase 4b: Multi-Agent Chat and the Engagement Manager
+
+## Goal
+
+A single conversational front door that can talk to more than one agent, with a coordinator —
+the **Engagement Manager** — that routes incoming work and runs build-vs-reuse triage.
+
+> The **Engagement Manager** is the professional-agency rename of the old "Ponytail" necessity
+> reviewer. It owns **intake → triage → routing**: take the operator's request, decide whether
+> something already exists (reuse) or must be built, and route to the right specialist (Engineering
+> Lead, Skill Engineer, …). This is the **engineering-scoped** precursor to the org-wide **Chief of
+> Staff** (Phase 8): 4b is the chat plumbing + simple routing + reuse triage; Phase 8 is intelligent,
+> org-wide context routing and delegation summaries.
+
+### User Stories
+
+* Multi-agent chat surface (talk to / switch between registered `directChat` agents)
+* **Engagement Manager** agent (coordinator; routes to specialists)
+* Simple routing (request → right agent by role/skill/authority)
+* **Build-vs-reuse triage** — "does this already exist?" from three sources: the registries
+  (deterministic: `agentRegistry` / `skillRegistry` / tool list), **codebase comprehension**
+  (judgment, via the read-only Cursor mode — see Phase 6.5), and the web (external / framework-first)
+* Necessity verdict (build / reuse / adapt) recorded as a reviewable artifact
+* Boundary with Chief of Staff (Phase 8) documented, not duplicated
+
+# Phase 4c: Expand the Engineering Team
+
+## Goal
+
+Grow the department roster deferred from Phase 3, deciding **agent vs skill** for each role.
+
+> Phase 6 made roles cheaper: a "specialist" can be a **skill on an existing agent** rather than a
+> whole new `mastra-agent`. 4c starts each role with that decision (per `CONTEXT.md` determinism
+> ratchet) and only stands up a separate agent when the role needs its own authority, memory, or
+> direct chat.
+
+### User Stories
+
+* Agent-vs-skill decision rule per role (authority / memory / directChat criteria)
+* **Debugger** — consumes the Phase 6.5 inspection + comprehension tooling for root-cause across files
+* **Security** — promote the Phase 5 security gate into a dedicated reviewer where it earns its keep
+* **Spec / Planning / Test** — split out of the Engineering Lead loop only where a dedicated agent helps
+* Each new hire ships through the **full QA pipeline** (the agent itself is code); its later *skill*
+  edits ride the lighter gate
 
 # Phase 5: Staging, Review, and Promotion
 
@@ -201,6 +253,53 @@ Skills become first-class reusable system objects.
 
 Deferred to Phase 7: autonomous authoring agents (Skill Author / Tool Author / Hiring),
 "adapt from external skill", and automated enforcement that every side-effecting tool ships a mock.
+
+# Phase 6.5: Steerable Engineering Loop
+
+## Goal
+
+Close the remaining gap to **100% engineering off the IDE**: make the build loop **steerable,
+observable, and diagnosable** from the gateway, so the operator rarely needs the editor for
+engineering work. This is the immediate next build after Phase 6.
+
+> **Why now.** The build engine already runs headless via the Cursor SDK in isolated worktrees, but
+> it uses one-shot `Agent.prompt` (fire-and-wait) — a black box you can't steer, observe, or debug
+> without opening the IDE. The single architectural move is migrating the executor to a **durable
+> Cursor session** (`Agent.create` / `agent.send` / `Agent.resume`), which unlocks plan-mode,
+> slice-by-slice execution, streaming, interrupt, and restart-survival at once. See
+> [docs/phase-6.5-steerable-loop.md](./docs/phase-6.5-steerable-loop.md),
+> [ADR 0011](./docs/adr/0011-steerable-builds-plan-and-slice.md),
+> [ADR 0012](./docs/adr/0012-cursor-comprehension-mode.md).
+
+> **Plan/agent mode.** The Cursor **SDK** has no plan-mode toggle (that is an IDE-only construct).
+> We get the same behavior by having the **Engineering Lead own the plan/checklist** and dispatching
+> **one bounded slice per `agent.send`**, verifying each before advancing. The SWE stays a dumb,
+> bounded executor; judgment lives in the EL (where authority, telemetry, and gates already are).
+
+> **Leverage Cursor for reasoning, not only writing.** Cursor's harness is a *codebase reasoning
+> engine*. Expose it in two authority-gated modes behind the `CodingExecutor` seam: a **read-only
+> comprehension mode** (map structure / find existing / plan integration — employee-safe, used by EL
+> planning, Debugger, Skill Engineer, the Engagement Manager's reuse triage) and the existing
+> **implementation mode** (writes code — management-gated). Use it for judgment-heavy multi-hop
+> questions; use `Grep`/registries for cheap lookups (the determinism ratchet).
+
+### User Stories
+
+* Executor migrated to durable Cursor session (`Agent.create`/`send`/`resume`)
+* **Plan-then-slice**: EL produces/owns a checklist; SWE executes one slice per `send`, verified between
+* **Streaming** build output in the gateway (`run.stream`)
+* **Interrupt / redirect** a drifting build (`run.cancel` + follow-up `send`)
+* **In-loop inspection**: read a worktree file, re-run a single test, tail the build log from chat
+* **Failure diagnosis surface**: logs / diffs / test output surfaced in-loop (precursor to the Debugger)
+* **Read-only codebase comprehension mode** (integration mapping + reuse discovery; cite-and-verify)
+* **PR / CI ingestion**: PR review comments + CI failures pulled back as loop inputs
+* **Operator visibility**: a status/diff view of in-flight work (`Agent.list` / `Agent.getRun`)
+* **Session-scoped approval** (minimal): pre-authorize a class of actions for the session to enable
+  "kick off and walk away" (the full policy engine stays near Phase 7 "safe activation" / Phase 14)
+* Restart-survival: reattach to an in-flight build after a gateway restart (`Agent.resume`)
+
+Out of scope (later): the full approval **policy engine** (Phase 7/14 trust), a rich web dashboard
+beyond a minimal status surface, and the autonomous authoring agents (Phase 7).
 
 # Phase 7: Authoring Agents
 

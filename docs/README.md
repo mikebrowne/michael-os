@@ -77,6 +77,7 @@ Stable backlog IDs (`BL-NNN`) live in issue titles, e.g. `[BL-004] First end-to-
 | [phase-4-delegation-jobs.md](./phase-4-delegation-jobs.md) | Phase 4 north star, jobs, observability, delegation |
 | [phase-5-staging-review-promotion.md](./phase-5-staging-review-promotion.md) | Phase 5 north star, staging, QA Engineer gates, promotion, rollback, restart |
 | [phase-6-skill-platform.md](./phase-6-skill-platform.md) | Phase 6 north star, Mastra Agent Skills substrate, Skill Engineer, EDD, telemetry |
+| [phase-6.5-steerable-loop.md](./phase-6.5-steerable-loop.md) | Phase 6.5 north star, steerable builds (plan-and-slice), Cursor comprehension mode, 100%-off-IDE exit criteria |
 | [CONTEXT.md](../CONTEXT.md) | Domain glossary |
 | [AGENTS.md](../AGENTS.md) | Operating rules for humans and agents |
 | [init.md](../init.md) | Full build plan (Phases 0–14) |
@@ -130,3 +131,5 @@ gh issue list
 - [0008 — QA Engineer verification model](./adr/0008-qa-engineer-verification.md)
 - [0009 — Mastra Agent Skills substrate](./adr/0009-mastra-agent-skills-substrate.md)
 - [0010 — Skill permission/authority & lighter-gate lifecycle](./adr/0010-skill-permission-lifecycle.md)
+- [0011 — Steerable builds: EL owns the plan, SWE executes bounded slices](./adr/0011-steerable-builds-plan-and-slice.md)
+- [0012 — Cursor harness for codebase comprehension & reuse discovery](./adr/0012-cursor-comprehension-mode.md)

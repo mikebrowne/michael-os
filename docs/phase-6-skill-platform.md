@@ -180,9 +180,9 @@ Docs + `skills/README` + wrap; full eval matrix green locally, machinery/safety 
   the JSONL (feeds the determinism ratchet).
 - **Automated enforcement that every side-effecting tool declares a mock + test** — **Phase 7 (Tool
   Author)**; documented there so it is caught.
-- **Phase 4b** (multi-agent chat interface + router/"ponytail" agent, to be renamed) — planned
-  shortly *after* Phase 6 to interactively exercise the Skill Engineer and the router; Phase 6 must
-  not hard-depend on it.
+- **Phase 4b** (multi-agent chat interface + the **Engagement Manager** coordinator — the rename of the
+  old "Ponytail" necessity reviewer) — planned shortly *after* Phase 6 (and after Phase 6.5) to
+  interactively exercise the Skill Engineer and the router; Phase 6 must not hard-depend on it.
 - Skill search tuning, external publishing, and versioning workflows beyond Mastra's defaults.
 
 ## Phase 6 complete when
