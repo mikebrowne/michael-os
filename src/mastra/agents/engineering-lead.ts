@@ -42,6 +42,9 @@ The review runs as a tracked Job. Wait for the verdict and fold it into the D+ r
 | dispatch-slice | Dispatch one bounded slice (needs YES) |
 | build-status | Show steerable build session status |
 | interrupt-build | Cancel in-flight slice; optional corrective dispatch |
+| read-worktree-file | Read a file in the current build worktree |
+| rerun-test | Re-run a single vitest file in the worktree |
+| tail-build-log | Tail the current build run log |
 | run-build | Legacy one-shot hand off to Cursor (needs YES) |
 | review-build | Delegate advisory code review after green build |
 | ship-docs | Commit/push PRD + grill notes (needs YES) |
@@ -90,6 +93,9 @@ export function createEngineeringLeadAgent(
       planBuild: tools.planBuild,
       dispatchSlice: tools.dispatchSlice,
       buildStatus: tools.buildStatus,
+      readWorktreeFile: tools.readWorktreeFileTool,
+      rerunTest: tools.rerunTestTool,
+      tailBuildLog: tools.tailBuildLogTool,
       interruptBuild: tools.interruptBuild,
       runBuild: tools.runBuild,
       reviewBuild: tools.reviewBuild,

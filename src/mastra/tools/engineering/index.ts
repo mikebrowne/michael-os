@@ -62,6 +62,12 @@ import {
   getSteerableBuildStatus,
 } from "../../../agentBuild/steerableBuild.js";
 import { buildSessionPath } from "../../../agentBuild/buildChecklist.js";
+import {
+  readWorktreeFile,
+  rerunSingleTest,
+  tailBuildLog,
+  resolveBuildWorktree,
+} from "../../../agentBuild/buildInspection.js";
 
 const DEFAULT_ACCEPTANCE_RELATIVE = "tests/acceptance/agent-build.test.ts";
 
@@ -950,6 +956,79 @@ export function createEngineeringTools(ctx: EngineeringSessionContext) {
     },
   });
 
+  const readWorktreeFileTool = createTool({
+    id: "read-worktree-file",
+    description:
+      "Read a file from the current build worktree (read-only, in-loop inspection).",
+    inputSchema: z.object({
+      slug: z.string().optional(),
+      relativePath: z.string(),
+    }),
+    outputSchema: z.object({
+      path: z.string(),
+      content: z.string(),
+      truncated: z.boolean(),
+    }),
+    execute: async (input) => {
+      const slug = input.slug ?? ctx.currentWorkItem?.slug;
+      if (!slug) throw new Error("No work item slug.");
+      const { worktreePath } = resolveBuildWorktree(
+        ctx.config.stateDir,
+        slug,
+        ctx.lastBuildResult?.worktreePath,
+      );
+      return readWorktreeFile(worktreePath, input.relativePath);
+    },
+  });
+
+  const rerunTestTool = createTool({
+    id: "rerun-test",
+    description:
+      "Re-run a single vitest file in the current build worktree (read-only inspection).",
+    inputSchema: z.object({
+      slug: z.string().optional(),
+      testRelativePath: z.string(),
+    }),
+    outputSchema: z.object({
+      passed: z.boolean(),
+      exitCode: z.number().nullable(),
+      log: z.string(),
+    }),
+    execute: async (input) => {
+      const slug = input.slug ?? ctx.currentWorkItem?.slug;
+      if (!slug) throw new Error("No work item slug.");
+      const { worktreePath } = resolveBuildWorktree(
+        ctx.config.stateDir,
+        slug,
+        ctx.lastBuildResult?.worktreePath,
+      );
+      return rerunSingleTest(worktreePath, input.testRelativePath);
+    },
+  });
+
+  const tailBuildLogTool = createTool({
+    id: "tail-build-log",
+    description: "Tail the build run log for the current work item (read-only).",
+    inputSchema: z.object({
+      slug: z.string().optional(),
+      lineCount: z.number().optional(),
+    }),
+    outputSchema: z.object({
+      path: z.string(),
+      content: z.string(),
+    }),
+    execute: async (input) => {
+      const slug = input.slug ?? ctx.currentWorkItem?.slug;
+      if (!slug) throw new Error("No work item slug.");
+      const { runDir } = resolveBuildWorktree(
+        ctx.config.stateDir,
+        slug,
+        ctx.lastBuildResult?.runDir,
+      );
+      return tailBuildLog(runDir, input.lineCount);
+    },
+  });
+
   const interruptBuild = createTool({
     id: "interrupt-build",
     description:
@@ -1251,6 +1330,9 @@ export function createEngineeringTools(ctx: EngineeringSessionContext) {
     planBuild,
     dispatchSlice,
     buildStatus,
+    readWorktreeFileTool,
+    rerunTestTool,
+    tailBuildLogTool,
     interruptBuild,
     runBuild,
     verifyBuild,
