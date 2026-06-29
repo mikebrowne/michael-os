@@ -1,5 +1,4 @@
 import { describe, expect, it } from "vitest";
-import { parseSkillMarkdown } from "../src/skills/skillLoader.js";
 import {
   createWorkItem,
   upsertWorkItem,
@@ -38,22 +37,6 @@ describe("gatewaySession", () => {
     const opts = gatewayMemoryOptions(session);
     expect(opts.memory.thread).toBe(session.threadId);
     expect(opts.memory.resource).toBe("operator");
-  });
-});
-
-describe("skillLoader", () => {
-  it("parses SKILL.md frontmatter", () => {
-    const raw = `---
-name: test-skill
-description: A test skill
----
-# Body
-
-Do the thing.`;
-    const skill = parseSkillMarkdown(raw);
-    expect(skill.name).toBe("test-skill");
-    expect(skill.description).toBe("A test skill");
-    expect(skill.body).toContain("Do the thing");
   });
 });
 

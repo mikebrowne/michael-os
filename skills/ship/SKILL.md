@@ -1,6 +1,13 @@
 ---
 name: ship
 description: Commit planning docs or green implementation to main with operator approval.
+metadata:
+  scope: [engineering-lead]
+  allowed-tools: [ship-docs, ship-implementation]
+  allowed-workflows: []
+  status: active
+  tags: [engineering]
+  version: 0.1.0
 ---
 
 # Ship

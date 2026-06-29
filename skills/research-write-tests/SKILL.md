@@ -1,6 +1,13 @@
 ---
 name: research-write-tests
 description: Add test plan to PRD and author one hash-locked acceptance test.
+metadata:
+  scope: [engineering-lead]
+  allowed-tools: [save-test-artifacts]
+  allowed-workflows: []
+  status: active
+  tags: [engineering]
+  version: 0.1.0
 ---
 
 # Research and write tests

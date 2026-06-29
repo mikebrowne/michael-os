@@ -1,6 +1,5 @@
-import { join } from "node:path";
 import { Agent } from "@mastra/core/agent";
-import { loadSkillFile } from "../../skills/skillLoader.js";
+import { loadSkillInstructions } from "../../skills/skillRegistry.js";
 
 const CORE_INSTRUCTIONS = `You are the MichaelOS **QA Engineer** — a specialist agent that verifies green builds before promotion.
 
@@ -23,21 +22,13 @@ Inspect the provided PRD, acceptance test, git diff, and changed files. Return a
 - Never include secrets or private data.
 - Output ONLY valid JSON matching the schema in the skill reference.`;
 
-export function loadCodeReviewSkillBody(repoRoot: string): string {
-  const skill = loadSkillFile(join(repoRoot, "skills", "code-review", "SKILL.md"));
-  return `## Skill: ${skill.name}\n\n${skill.description}\n\n${skill.body}`;
-}
-
-export function loadSecurityReviewSkillBody(repoRoot: string): string {
-  const skill = loadSkillFile(join(repoRoot, "skills", "security-review", "SKILL.md"));
-  return `## Skill: ${skill.name}\n\n${skill.description}\n\n${skill.body}`;
-}
-
 export function createQaEngineerAgent(
   model: string,
   repoRoot: string = process.cwd(),
 ): Agent {
-  const skillGuidance = `${loadCodeReviewSkillBody(repoRoot)}\n\n---\n\n${loadSecurityReviewSkillBody(repoRoot)}`;
+  const codeReviewBody = loadSkillInstructions(repoRoot, "code-review");
+  const securityReviewBody = loadSkillInstructions(repoRoot, "security-review");
+  const skillGuidance = `${codeReviewBody}\n\n---\n\n${securityReviewBody}`;
 
   return new Agent({
     id: "qa-engineer",

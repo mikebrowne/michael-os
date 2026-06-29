@@ -1,6 +1,13 @@
 ---
 name: code-review
 description: Review a green build diff against PRD and acceptance test. Advisory verdict only.
+metadata:
+  scope: [engineering-lead, qa-engineer]
+  allowed-tools: [review-build]
+  allowed-workflows: []
+  status: active
+  tags: [engineering, qa]
+  version: 0.1.0
 ---
 
 # Code review

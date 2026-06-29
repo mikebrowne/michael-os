@@ -1,6 +1,13 @@
 ---
 name: security-review
 description: Security-focused review of a staged diff for vulnerabilities and unsafe patterns.
+metadata:
+  scope: [qa-engineer]
+  allowed-tools: [review-build]
+  allowed-workflows: []
+  status: active
+  tags: [engineering, qa, security]
+  version: 0.1.0
 ---
 
 # Security review

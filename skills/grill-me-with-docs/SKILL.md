@@ -1,6 +1,13 @@
 ---
 name: grill-me-with-docs
 description: Interview the operator relentlessly until design decisions are resolved. One question at a time.
+metadata:
+  scope: [engineering-lead]
+  allowed-tools: [save-grill-notes]
+  allowed-workflows: []
+  status: active
+  tags: [engineering]
+  version: 0.1.0
 ---
 
 # Grill me with docs

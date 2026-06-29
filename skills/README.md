@@ -4,7 +4,7 @@ MichaelOS skills are **focused instruction files** (Matt Pocock–style) that ag
 
 ## Phase 2 skills (Engineering Lead)
 
-The **Engineering Lead** loads these from `skills/<name>/SKILL.md` via `src/skills/skillLoader.ts` and embeds them in agent instructions. The operator drives the loop through `npm run gateway`; tools persist deliverables to disk.
+The **Engineering Lead** discovers these via `src/skills/skillRegistry.ts` over Mastra Agent Skills and loads bodies **on demand** (progressive loading via the `skill` tool). The operator drives the loop through `npm run gateway`; tools persist deliverables to disk.
 
 | Skill | Path | Role | Deliverable |
 |-------|------|------|-------------|

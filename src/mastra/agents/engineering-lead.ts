@@ -1,27 +1,11 @@
-import { join } from "node:path";
 import type { Agent } from "@mastra/core/agent";
 import { Agent as MastraAgent } from "@mastra/core/agent";
-import { loadSkillFile } from "../../skills/skillLoader.js";
 import { createEngineeringTools } from "../tools/engineering/index.js";
 import { createAgentMemory } from "../agentMemory.js";
 import type { EngineeringSessionContext } from "../../engineering/sessionContext.js";
 import { filterToolsByAuthority } from "../../engineering/agentAuthority.js";
-
-const SKILL_NAMES = [
-  "grill-me-with-docs",
-  "to-prd",
-  "research-write-tests",
-  "build-handoff",
-  "ship",
-  "code-review",
-] as const;
-
-export function loadEngineeringSkillBodies(repoRoot: string): string {
-  return SKILL_NAMES.map((name) => {
-    const skill = loadSkillFile(join(repoRoot, "skills", name, "SKILL.md"));
-    return `## Skill: ${skill.name}\n\n${skill.description}\n\n${skill.body}`;
-  }).join("\n\n---\n\n");
-}
+import { getAgent } from "../agentRegistry.js";
+import { resolveAgentSkillBundlePaths } from "../../skills/skillRegistry.js";
 
 const CORE_INSTRUCTIONS = `You are the MichaelOS **Engineering Lead** — the operator's production agent for the engineering loop.
 
@@ -69,6 +53,10 @@ The review runs as a tracked Job. Wait for the verdict and fold it into the D+ r
 - **Commit messages**: when asked, draft a sensible message from the PRD title/slug and call the ship tool — do not start a new grill.
 - **Scope**: thin vertical slices only. No secrets or private data.
 
+## Skills (progressive loading)
+
+Your skill index lists available SOPs. Before running a loop step, call the **skill** tool to load the full instructions for that skill (e.g. grill-me-with-docs, to-prd). Do not guess SOP steps from memory.
+
 ## Resume
 
 When the operator says resume #N or names a feature, call resume-work-item and summarize state before proposing next step.`;
@@ -80,8 +68,13 @@ export function createEngineeringLeadAgent(
   qaEngineerSubAgent?: Agent,
 ): MastraAgent {
   const tools = createEngineeringTools(ctx);
-  const skillGuidance = loadEngineeringSkillBodies(repoRoot);
   const memory = createAgentMemory(repoRoot);
+
+  const elRegistration = getAgent("engineering-lead");
+  const skillPaths = resolveAgentSkillBundlePaths(
+    repoRoot,
+    elRegistration?.skills ?? [],
+  );
 
   const managementTools = filterToolsByAuthority(
     {
@@ -112,13 +105,11 @@ export function createEngineeringLeadAgent(
     name: "Engineering Lead",
     description:
       "Orchestrates the engineering loop and delegates specialist tasks to department agents.",
-    instructions: `${CORE_INSTRUCTIONS}
-
-## Skills reference
-
-${skillGuidance}`,
+    instructions: CORE_INSTRUCTIONS,
     model,
     memory,
+    skills: skillPaths,
+    skillsFormat: "markdown",
     agents: qaEngineer
       ? {
           qaEngineer,

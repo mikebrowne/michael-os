@@ -1,6 +1,13 @@
 ---
 name: to-prd
 description: Synthesize grill notes into a PRD and GitHub issue.
+metadata:
+  scope: [engineering-lead]
+  allowed-tools: [save-prd, github-create-issue]
+  allowed-workflows: []
+  status: active
+  tags: [engineering]
+  version: 0.1.0
 ---
 
 # To PRD

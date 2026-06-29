@@ -1,6 +1,13 @@
 ---
 name: build-handoff
 description: Hand off PRD and acceptance test to the Cursor build pipeline.
+metadata:
+  scope: [engineering-lead]
+  allowed-tools: [run-build]
+  allowed-workflows: []
+  status: active
+  tags: [engineering]
+  version: 0.1.0
 ---
 
 # Build handoff
