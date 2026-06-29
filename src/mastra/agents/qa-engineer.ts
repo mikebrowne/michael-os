@@ -1,5 +1,8 @@
 import { Agent } from "@mastra/core/agent";
-import { loadSkillInstructions } from "../../skills/skillRegistry.js";
+import {
+  loadSkillInstructions,
+  resolveSkillNamesForAgent,
+} from "../../skills/skillRegistry.js";
 
 const CORE_INSTRUCTIONS = `You are the MichaelOS **QA Engineer** — a specialist agent that verifies green builds before promotion.
 
@@ -26,9 +29,10 @@ export function createQaEngineerAgent(
   model: string,
   repoRoot: string = process.cwd(),
 ): Agent {
-  const codeReviewBody = loadSkillInstructions(repoRoot, "code-review");
-  const securityReviewBody = loadSkillInstructions(repoRoot, "security-review");
-  const skillGuidance = `${codeReviewBody}\n\n---\n\n${securityReviewBody}`;
+  const skillNames = resolveSkillNamesForAgent(repoRoot, "qa-engineer");
+  const skillGuidance = skillNames
+    .map((name) => loadSkillInstructions(repoRoot, name))
+    .join("\n\n---\n\n");
 
   return new Agent({
     id: "qa-engineer",

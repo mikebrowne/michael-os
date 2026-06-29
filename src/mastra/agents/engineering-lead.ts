@@ -4,8 +4,7 @@ import { createEngineeringTools } from "../tools/engineering/index.js";
 import { createAgentMemory } from "../agentMemory.js";
 import type { EngineeringSessionContext } from "../../engineering/sessionContext.js";
 import { filterToolsByAuthority } from "../../engineering/agentAuthority.js";
-import { getAgent } from "../agentRegistry.js";
-import { resolveAgentSkillBundlePaths } from "../../skills/skillRegistry.js";
+import { resolveSkillsForAgent } from "../../skills/skillRegistry.js";
 
 const CORE_INSTRUCTIONS = `You are the MichaelOS **Engineering Lead** — the operator's production agent for the engineering loop.
 
@@ -70,11 +69,7 @@ export function createEngineeringLeadAgent(
   const tools = createEngineeringTools(ctx);
   const memory = createAgentMemory(repoRoot);
 
-  const elRegistration = getAgent("engineering-lead");
-  const skillPaths = resolveAgentSkillBundlePaths(
-    repoRoot,
-    elRegistration?.skills ?? [],
-  );
+  const skillPaths = resolveSkillsForAgent(repoRoot, "engineering-lead");
 
   const managementTools = filterToolsByAuthority(
     {
