@@ -6,6 +6,7 @@ import {
   parseObservabilityLevel,
   type ObservabilityLevel,
 } from "../observability/observabilityConfig.js";
+import type { CodingExecutorMode } from "../agentBuild/types.js";
 
 const defaultConfigSchema = z.object({
   appName: z.string(),
@@ -19,6 +20,7 @@ export type AppConfig = {
   defaultModel: string;
   defaultReviewModel: string;
   defaultCodingModel: string;
+  codingExecutorMode: CodingExecutorMode;
   vaultPath: string;
   logDir: string;
   aiRunsDir: string;
@@ -76,6 +78,12 @@ export function loadConfig(cwd: string = process.cwd()): AppConfig {
   );
   const remediationCapRaw = process.env.REMEDIATION_CAP?.trim();
   const remediationCapParsed = remediationCapRaw ? Number(remediationCapRaw) : 3;
+  const codingExecutorModeRaw = (
+    process.env.CODING_EXECUTOR_MODE ?? "durable"
+  ).toLowerCase();
+  const codingExecutorMode = z
+    .enum(["durable", "one-shot"])
+    .parse(codingExecutorModeRaw);
 
   return {
     appName: String(merged.appName),
@@ -96,6 +104,7 @@ export function loadConfig(cwd: string = process.cwd()): AppConfig {
     cursorApiKey,
     observabilityLevel,
     remediationCap: Number.isFinite(remediationCapParsed) ? remediationCapParsed : 3,
+    codingExecutorMode,
   };
 }
 

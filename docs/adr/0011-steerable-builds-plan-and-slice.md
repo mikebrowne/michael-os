@@ -55,3 +55,11 @@ guarantee.
 > The decision (durable session + EL-owned plan-and-slice) stands; the *rationale* is corrected: native
 > mode is the mechanism, the EL-owned checklist is the control. Verify plan mode's exact file-write
 > semantics in the installed version during slice 1.
+
+> **Plan-mode write behavior (verified slice 1, `@cursor/sdk` v1.0.22):** native `mode: "plan"` is
+> designed to research and emit a `createPlan` tool call (markdown plan + todos) without implementing.
+> The SDK still exposes write/edit tool types in the type system, so we **do not** treat plan mode
+> alone as a hard side-effect gate. Belt-and-suspenders: prompt **"do not write any code"** on plan
+> turns and run plan/comprehension in a **disposable worktree** whose writes are discarded — that
+> environment boundary is the hard read-only guarantee. Implementation turns use `mode: "agent"` on
+> the same durable `Agent` after plan approval.

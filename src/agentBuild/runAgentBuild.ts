@@ -24,7 +24,7 @@ import {
   unlockAcceptanceTest,
 } from "./gates.js";
 import { runPreflight } from "./preflight.js";
-import { createCursorExecutor } from "./executor.js";
+import { createCodingExecutorForMode } from "./durableCodingExecutor.js";
 import { writeResult } from "./result.js";
 import type { CodingExecutorResult, PreflightResult } from "./types.js";
 import type { RedGreenGateOutcome } from "./gates.js";
@@ -179,7 +179,7 @@ export async function runAgentBuild(
     });
 
     progress(onProgress, "Invoking Cursor executor...");
-    const executor = createCursorExecutor(config);
+    const executor = createCodingExecutorForMode(config, config.codingExecutorMode);
     try {
       cursorResult = await executor.runTask({
         repoPath,
