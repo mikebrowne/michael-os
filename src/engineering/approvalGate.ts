@@ -1,5 +1,7 @@
 export const DANGEROUS_TOOL_IDS = new Set([
   "run-build",
+  "plan-build",
+  "dispatch-slice",
   "ship-docs",
   "ship-implementation",
   "stage-implementation",

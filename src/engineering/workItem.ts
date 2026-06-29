@@ -36,6 +36,9 @@ export type WorkItem = {
   remediationAttemptCount?: number;
   stagedBranchName?: string;
   stagedPrNumber?: number;
+  cursorAgentId?: string;
+  buildSessionPath?: string;
+  buildPlanPath?: string;
   createdAt: string;
   updatedAt: string;
 };

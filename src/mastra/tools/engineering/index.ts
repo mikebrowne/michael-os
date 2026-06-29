@@ -53,8 +53,24 @@ import {
   rehydrateBuildFromWorkItem,
   tryRehydrateBuildResult,
 } from "../../../engineering/buildManifest.js";
+import {
+  runSteerablePlanPhase,
+  runSteerableDispatchSlice,
+  finalizeSteerableBuild,
+  getSteerableBuildStatus,
+} from "../../../agentBuild/steerableBuild.js";
+import { buildSessionPath } from "../../../agentBuild/buildChecklist.js";
 
 const DEFAULT_ACCEPTANCE_RELATIVE = "tests/acceptance/agent-build.test.ts";
+
+type PlanBuildInput = { slug: string; operatorAnswer?: string; contextSummary?: string };
+type DispatchSliceInput = {
+  slug?: string;
+  sliceIndex?: number;
+  correctiveMessage?: string;
+  targetedTestFiles?: string[];
+  finalize?: boolean;
+};
 
 type RunBuildInput = { slug: string; requestSummary?: string };
 type ShipDocsInput = { slug: string; commitMessage: string };
@@ -752,6 +768,174 @@ export function createEngineeringTools(ctx: EngineeringSessionContext) {
     },
   });
 
+  const planBuild = createTool({
+    id: "plan-build",
+    description:
+      "Run plan-mode on a durable Cursor session; capture createPlan checklist before coding. Requires operator approval.",
+    inputSchema: z.object({
+      slug: z.string(),
+      operatorAnswer: z.string().optional(),
+      contextSummary: z.string().optional(),
+    }),
+    outputSchema: z.object({
+      needsApproval: z.boolean().optional(),
+      needsOperatorInput: z.boolean().optional(),
+      question: z.string().optional(),
+      message: z.string(),
+      sliceCount: z.number().optional(),
+    }),
+    execute: async (input) => {
+      if (!consumeApproval(ctx.approval, "plan-build")) {
+        requestApproval(ctx.approval, "plan-build", input as Record<string, unknown>);
+        return {
+          needsApproval: true,
+          message: needsApprovalMessage("plan-build"),
+        };
+      }
+
+      const item = getWorkItem(ctx.config.stateDir, input.slug);
+      if (!item?.prdPath || !item.acceptanceTestPath) {
+        throw new Error("Work item missing PRD or acceptance test.");
+      }
+
+      requireCursorKey(ctx.config);
+      const runLogger = createRunLogger({
+        logDir: ctx.config.logDir,
+        logLevel: ctx.config.logLevel,
+        name: ctx.config.appName,
+      });
+
+      const result = await runSteerablePlanPhase({
+        config: ctx.config,
+        repoPath: ctx.repoPath,
+        input: {
+          slug: input.slug,
+          prdMarkdown: readFileSync(item.prdPath, "utf-8"),
+          acceptanceTestContent: readFileSync(item.acceptanceTestPath, "utf-8"),
+          contextSummary: input.contextSummary,
+        },
+        observability: ctx.observability,
+        runLogger,
+        operatorAnswer: input.operatorAnswer,
+      });
+
+      if (!result.ok && result.needsOperatorInput) {
+        return {
+          needsOperatorInput: true,
+          question: result.question,
+          message: `Plan mode needs operator input:\n${result.question}`,
+        };
+      }
+
+      if (!result.ok) {
+        return { message: result.error ?? "Plan phase failed." };
+      }
+
+      ctx.activeBuildSession = result.session;
+      ctx.currentWorkItem = upsertWorkItem(ctx.config.stateDir, {
+        ...item,
+        stage: "build",
+        cursorAgentId: result.session.agentId,
+        buildSessionPath: buildSessionPath(ctx.config.stateDir, input.slug),
+        buildPlanPath: join(result.session.runDir, "build-plan.md"),
+      });
+
+      return {
+        message: result.message,
+        sliceCount: result.session.slices.length,
+      };
+    },
+  });
+
+  const dispatchSlice = createTool({
+    id: "dispatch-slice",
+    description:
+      "Dispatch one bounded implementation slice on the durable build session. Requires operator approval unless session pre-authorized.",
+    inputSchema: z.object({
+      slug: z.string().optional(),
+      sliceIndex: z.number().optional(),
+      correctiveMessage: z.string().optional(),
+      targetedTestFiles: z.array(z.string()).optional(),
+      finalize: z.boolean().optional(),
+    }),
+    outputSchema: z.object({
+      needsApproval: z.boolean().optional(),
+      message: z.string(),
+      allSlicesComplete: z.boolean().optional(),
+      success: z.boolean().optional(),
+    }),
+    execute: async (input) => {
+      if (!consumeApproval(ctx.approval, "dispatch-slice")) {
+        requestApproval(ctx.approval, "dispatch-slice", input as Record<string, unknown>);
+        return {
+          needsApproval: true,
+          message: needsApprovalMessage("dispatch-slice"),
+        };
+      }
+
+      const slug = input.slug ?? ctx.currentWorkItem?.slug;
+      if (!slug) throw new Error("No work item slug for dispatch-slice.");
+
+      requireCursorKey(ctx.config);
+      const runLogger = createRunLogger({
+        logDir: ctx.config.logDir,
+        logLevel: ctx.config.logLevel,
+        name: ctx.config.appName,
+      });
+
+      const dispatch = await runSteerableDispatchSlice({
+        config: ctx.config,
+        slug,
+        observability: ctx.observability,
+        runLogger,
+        sliceIndex: input.sliceIndex,
+        correctiveMessage: input.correctiveMessage,
+        targetedTestFiles: input.targetedTestFiles,
+      });
+
+      if (!dispatch.ok) {
+        return { message: dispatch.error };
+      }
+
+      ctx.activeBuildSession = dispatch.session;
+
+      if (input.finalize && dispatch.allSlicesComplete) {
+        const finalized = await finalizeSteerableBuild({
+          config: ctx.config,
+          slug,
+          observability: ctx.observability,
+        });
+        ctx.activeBuildSession = null;
+        return {
+          message: `${dispatch.message}\n\n${finalized.message}`,
+          allSlicesComplete: true,
+          success: finalized.success,
+        };
+      }
+
+      return {
+        message: dispatch.message,
+        allSlicesComplete: dispatch.allSlicesComplete,
+      };
+    },
+  });
+
+  const buildStatus = createTool({
+    id: "build-status",
+    description: "Show status of the active steerable build session for a work item.",
+    inputSchema: z.object({
+      slug: z.string().optional(),
+    }),
+    outputSchema: z.object({
+      message: z.string(),
+    }),
+    execute: async (input) => {
+      const slug = input.slug ?? ctx.currentWorkItem?.slug;
+      if (!slug) throw new Error("No work item slug for build-status.");
+      return { message: getSteerableBuildStatus(ctx.config, slug) };
+    },
+  });
+
   const runBuild = createTool({
     id: "run-build",
     description:
@@ -980,6 +1164,16 @@ export function createEngineeringTools(ctx: EngineeringSessionContext) {
     if (toolId === "run-build") {
       return executeRunBuildCore(args as RunBuildInput);
     }
+    if (toolId === "plan-build") {
+      return planBuild.execute!(args as PlanBuildInput, {} as never) as Promise<
+        Record<string, unknown>
+      >;
+    }
+    if (toolId === "dispatch-slice") {
+      return dispatchSlice.execute!(args as DispatchSliceInput, {} as never) as Promise<
+        Record<string, unknown>
+      >;
+    }
     if (toolId === "ship-docs") {
       return executeShipDocsCore(args as ShipDocsInput);
     }
@@ -1009,6 +1203,9 @@ export function createEngineeringTools(ctx: EngineeringSessionContext) {
     githubUpdateIssue,
     listInProgress,
     resumeWorkItem,
+    planBuild,
+    dispatchSlice,
+    buildStatus,
     runBuild,
     verifyBuild,
     reviewBuild,

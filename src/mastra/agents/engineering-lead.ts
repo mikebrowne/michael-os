@@ -38,7 +38,10 @@ The review runs as a tracked Job. Wait for the verdict and fold it into the D+ r
 | github-create-issue / github-update-issue | Tracking issue |
 | list-in-progress | Operator asks what's open |
 | resume-work-item | Resume by slug or issue # |
-| run-build | Hand off to Cursor (needs YES) |
+| plan-build | Plan-mode durable session; capture checklist (needs YES) |
+| dispatch-slice | Dispatch one bounded slice (needs YES) |
+| build-status | Show steerable build session status |
+| run-build | Legacy one-shot hand off to Cursor (needs YES) |
 | review-build | Delegate advisory code review after green build |
 | ship-docs | Commit/push PRD + grill notes (needs YES) |
 | ship-implementation | Push green build to main (needs YES) |
@@ -83,6 +86,9 @@ export function createEngineeringLeadAgent(
       githubUpdateIssue: tools.githubUpdateIssue,
       listInProgress: tools.listInProgress,
       resumeWorkItem: tools.resumeWorkItem,
+      planBuild: tools.planBuild,
+      dispatchSlice: tools.dispatchSlice,
+      buildStatus: tools.buildStatus,
       runBuild: tools.runBuild,
       reviewBuild: tools.reviewBuild,
       verifyBuild: tools.verifyBuild,

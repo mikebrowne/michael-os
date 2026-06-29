@@ -21,6 +21,7 @@ import { createJobRegistry } from "./jobRegistry.js";
 import type { JobRunner } from "./jobRunner.js";
 import type { PromotionRegistry } from "./promotionRegistry.js";
 import { createPromotionRegistry } from "./promotionRegistry.js";
+import type { BuildSessionRecord } from "../agentBuild/buildChecklist.js";
 import type { RestartGate } from "../gateway/restart.js";
 import { createRestartGate } from "../gateway/restart.js";
 
@@ -42,6 +43,7 @@ export type EngineeringSessionContext = {
   restartGate: RestartGate;
   ghRunner: GhRunner;
   gitRunner: GitRunner;
+  activeBuildSession?: BuildSessionRecord | null;
 };
 
 function defaultGhRunner(args: string[]): Promise<{ stdout: string; stderr: string; exitCode: number }> {
@@ -137,5 +139,6 @@ export function createEngineeringSessionContext(
     restartGate: options?.restartGate ?? createRestartGate(),
     ghRunner: options?.ghRunner ?? defaultGhRunner,
     gitRunner: options?.gitRunner ?? createDefaultGitRunner(repoPath),
+    activeBuildSession: null,
   };
 }
