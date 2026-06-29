@@ -97,6 +97,8 @@ export function createEngineeringLeadAgent(
       rerunTest: tools.rerunTestTool,
       tailBuildLog: tools.tailBuildLogTool,
       comprehend: tools.comprehendTool,
+      ingestPrFeedback: tools.ingestPrFeedbackTool,
+      authorizeBuildDispatch: tools.authorizeBuildDispatch,
       interruptBuild: tools.interruptBuild,
       runBuild: tools.runBuild,
       reviewBuild: tools.reviewBuild,

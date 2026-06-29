@@ -20,6 +20,9 @@ import {
   needsApprovalMessage,
   requestApproval,
   grantApproval,
+  grantSessionApproval,
+  consumeSessionApproval,
+  clearSessionApprovalsForBuild,
 } from "../../../engineering/approvalGate.js";
 import { shipDocs, shipImplementation } from "../../../engineering/ship.js";
 import { stageBuild, promoteStagedChange, rollbackPromotion } from "../../../engineering/staging.js";
@@ -69,6 +72,7 @@ import {
   resolveBuildWorktree,
 } from "../../../agentBuild/buildInspection.js";
 import { runComprehension } from "../../../agentBuild/comprehension.js";
+import { ingestPrFeedback } from "../../../engineering/prFeedback.js";
 
 const DEFAULT_ACCEPTANCE_RELATIVE = "tests/acceptance/agent-build.test.ts";
 
@@ -876,16 +880,21 @@ export function createEngineeringTools(ctx: EngineeringSessionContext) {
       success: z.boolean().optional(),
     }),
     execute: async (input) => {
-      if (!consumeApproval(ctx.approval, "dispatch-slice")) {
+      const slug = input.slug ?? ctx.currentWorkItem?.slug;
+      if (!slug) throw new Error("No work item slug for dispatch-slice.");
+
+      const sessionApproved = consumeSessionApproval(
+        ctx.approval,
+        "dispatch-slice",
+        slug,
+      );
+      if (!sessionApproved && !consumeApproval(ctx.approval, "dispatch-slice")) {
         requestApproval(ctx.approval, "dispatch-slice", input as Record<string, unknown>);
         return {
           needsApproval: true,
           message: needsApprovalMessage("dispatch-slice"),
         };
       }
-
-      const slug = input.slug ?? ctx.currentWorkItem?.slug;
-      if (!slug) throw new Error("No work item slug for dispatch-slice.");
 
       requireCursorKey(ctx.config);
       const runLogger = createRunLogger({
@@ -927,6 +936,7 @@ export function createEngineeringTools(ctx: EngineeringSessionContext) {
           observability: ctx.observability,
         });
         ctx.activeBuildSession = null;
+        clearSessionApprovalsForBuild(ctx.approval, slug);
         return {
           message: `${dispatch.message}\n\n${finalized.message}`,
           allSlicesComplete: true,
@@ -1065,6 +1075,101 @@ export function createEngineeringTools(ctx: EngineeringSessionContext) {
     },
   });
 
+  const authorizeBuildDispatch = createTool({
+    id: "authorize-build-dispatch",
+    description:
+      "Pre-authorize dispatch-slice for the current build session (expires when build finishes/cancels).",
+    inputSchema: z.object({
+      slug: z.string().optional(),
+    }),
+    outputSchema: z.object({
+      message: z.string(),
+      authorized: z.boolean(),
+    }),
+    execute: async (input) => {
+      const slug = input.slug ?? ctx.currentWorkItem?.slug;
+      if (!slug) throw new Error("No work item slug.");
+      grantSessionApproval(ctx.approval, "dispatch-slice", slug);
+      ctx.observability.emit(
+        "approval.session_granted",
+        {},
+        { toolId: "dispatch-slice", buildSlug: slug },
+        "standard",
+      );
+      return {
+        message: `Pre-authorized dispatch-slice for build "${slug}" until it finishes or is cancelled.`,
+        authorized: true,
+      };
+    },
+  });
+
+  const ingestPrFeedbackTool = createTool({
+    id: "ingest-pr-feedback",
+    description:
+      "Pull PR review comments + CI failures and normalize into a corrective build slice.",
+    inputSchema: z.object({
+      prNumber: z.number().optional(),
+      slug: z.string().optional(),
+      dispatch: z.boolean().optional(),
+    }),
+    outputSchema: z.object({
+      message: z.string(),
+      itemCount: z.number(),
+      correctiveSlicePrompt: z.string(),
+    }),
+    execute: async (input) => {
+      const slug = input.slug ?? ctx.currentWorkItem?.slug;
+      const prNumber =
+        input.prNumber ?? ctx.currentWorkItem?.stagedPrNumber;
+      if (!prNumber) {
+        throw new Error("No PR number (pass prNumber or stage a PR first).");
+      }
+
+      const bundle = await ingestPrFeedback(
+        ctx.ghRunner,
+        ctx.githubRepo,
+        prNumber,
+      );
+
+      ctx.observability.emit(
+        "pr.feedback_ingested",
+        {},
+        {
+          prNumber,
+          itemCount: bundle.items.length,
+          slug,
+        },
+        "standard",
+      );
+
+      if (input.dispatch && slug) {
+        const runLogger = createRunLogger({
+          logDir: ctx.config.logDir,
+          logLevel: ctx.config.logLevel,
+          name: ctx.config.appName,
+        });
+        const started = startSteerableDispatchSliceBackground({
+          config: ctx.config,
+          slug,
+          observability: ctx.observability,
+          runLogger,
+          correctiveMessage: bundle.correctiveSlicePrompt,
+        });
+        return {
+          message: `Ingested ${bundle.items.length} feedback item(s). ${started.message}`,
+          itemCount: bundle.items.length,
+          correctiveSlicePrompt: bundle.correctiveSlicePrompt,
+        };
+      }
+
+      return {
+        message: `Ingested ${bundle.items.length} feedback item(s) from PR #${prNumber}.`,
+        itemCount: bundle.items.length,
+        correctiveSlicePrompt: bundle.correctiveSlicePrompt,
+      };
+    },
+  });
+
   const interruptBuild = createTool({
     id: "interrupt-build",
     description:
@@ -1092,6 +1197,7 @@ export function createEngineeringTools(ctx: EngineeringSessionContext) {
         runLogger,
         correctiveMessage: input.correctiveMessage,
       });
+      clearSessionApprovalsForBuild(ctx.approval, slug);
       return { message: result.message, ok: result.ok };
     },
   });
@@ -1370,6 +1476,8 @@ export function createEngineeringTools(ctx: EngineeringSessionContext) {
     rerunTestTool,
     tailBuildLogTool,
     comprehendTool,
+    ingestPrFeedbackTool,
+    authorizeBuildDispatch,
     interruptBuild,
     runBuild,
     verifyBuild,

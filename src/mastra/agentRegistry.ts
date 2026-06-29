@@ -50,6 +50,8 @@ export const AGENT_REGISTRY: AgentRegistration[] = [
       "rerun-test",
       "tail-build-log",
       "comprehend",
+      "ingest-pr-feedback",
+      "authorize-build-dispatch",
       "run-build",
       "review-build",
       "verify-build",
