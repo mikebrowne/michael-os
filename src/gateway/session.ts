@@ -10,6 +10,7 @@ import {
   needsApprovalMessage,
   parseYesNo,
   requestApproval,
+  grantSessionApproval,
 } from "../engineering/approvalGate.js";
 import { logApprovalAudit } from "../engineering/approvalAudit.js";
 import { getWorkItemByIssue } from "../engineering/workItem.js";
@@ -29,6 +30,12 @@ import {
   isBuildInFlight,
   interruptSteerableBuild,
 } from "../agentBuild/steerableBuild.js";
+import {
+  formatBuildDetail,
+  formatBuildListLine,
+  listLocalBuildSessions,
+  listCursorAgents,
+} from "../agentBuild/buildVisibility.js";
 import { createRunLogger } from "../logging/runLogger.js";
 
 export type GatewayRuntime = {
@@ -202,6 +209,44 @@ export async function processGatewayLine(
       runtime.memorySession,
       runtime.ctx.currentWorkItem,
     );
+    return { output };
+  }
+
+  if (trimmed.toLowerCase() === "authorize dispatch") {
+    const slug = runtime.ctx.currentWorkItem?.slug;
+    if (!slug) {
+      output.push("\nNo current work item to authorize dispatch for.\n");
+      return { output };
+    }
+    grantSessionApproval(runtime.ctx.approval, "dispatch-slice", slug);
+    output.push(
+      `\nengineering-lead> Pre-authorized dispatch-slice for build "${slug}" until finish/cancel.\n`,
+    );
+    return { output };
+  }
+
+  if (trimmed.toLowerCase() === "builds") {
+    const sessions = listLocalBuildSessions(runtime.config.stateDir);
+    if (sessions.length === 0) {
+      output.push("\nNo durable build sessions recorded.\n");
+    } else {
+      output.push("\nDurable build sessions:\n");
+      for (const session of sessions.slice(0, 20)) {
+        output.push(`${formatBuildListLine(session)}\n`);
+      }
+    }
+    const agents = await listCursorAgents(runtime.config, runtime.ctx.repoPath);
+    output.push("\nCursor local agents:\n");
+    for (const line of agents) {
+      output.push(`${line}\n`);
+    }
+    return { output };
+  }
+
+  const buildMatch = trimmed.match(/^build\s+(\S+)$/i);
+  if (buildMatch) {
+    const query = buildMatch[1]!;
+    output.push(`\n${formatBuildDetail(runtime.config, query)}\n`);
     return { output };
   }
 
