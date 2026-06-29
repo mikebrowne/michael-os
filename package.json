@@ -23,7 +23,8 @@
     "chat": "tsx scripts/chatClient.ts",
     "eval:delegation": "tsx scripts/evalDelegation.ts",
     "eval:promotion": "tsx scripts/evalPromotion.ts",
-    "eval:gates": "tsx scripts/evalGates.ts"
+    "eval:gates": "tsx scripts/evalGates.ts",
+    "eval:skills": "tsx scripts/evalSkills.ts"
   },
   "dependencies": {
     "@cursor/sdk": "^1.0.22",

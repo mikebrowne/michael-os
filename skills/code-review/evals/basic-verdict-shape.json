@@ -1,0 +1,5 @@
+{
+  "input": "Review a green build diff for a greet utility against PRD and acceptance test.",
+  "expectedBehavior": "Returns JSON verdict with decision field approve request-changes or block",
+  "assertions": ["decision", "rationale", "findings"]
+}

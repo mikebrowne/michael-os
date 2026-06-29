@@ -19,6 +19,7 @@ import {
   needsApprovalMessage,
 } from "../../../engineering/approvalGate.js";
 import { createIssue } from "../../../engineering/github.js";
+import { runDeterministicSkillEval } from "../../../skills/skillEvalRunner.js";
 
 function parseScopeInput(scope: string | string[]): SkillScope {
   if (scope === "shared") return "shared";
@@ -164,14 +165,17 @@ export function createSkillEngineerTools(ctx: SkillEngineerSessionContext) {
       if (!existsSync(evalsDir)) {
         return {
           passed: false,
-          message: `No evals/ folder for skill "${input.name}". Add cases in Slice 5 EDD harness.`,
+          message: `No evals/ folder for skill "${input.name}".`,
+          skillName: input.name,
         };
       }
+      const outcome = runDeterministicSkillEval(ctx.repoPath, input.name);
       return {
-        passed: false,
-        message:
-          "Eval runner wired in npm run eval:skills (local-only). Use that script for full EDD.",
         skillName: input.name,
+        ...outcome,
+        hint: outcome.passed
+          ? undefined
+          : "Run npm run eval:skills locally for live agent scoring.",
       };
     },
   });
