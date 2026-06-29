@@ -34,8 +34,32 @@ Frontmatter domain fields ride in the spec's `metadata` map:
 - `allowed-tools` / `allowed-workflows` — must be ⊆ the agent's authority (enforced at validation + injection).
 - `tags` / `category`, `status` (`active` / `draft` / `deprecated`), `version`.
 
-The **Skill Engineer** (`skill-engineer`, employee) authors/edits/validates/EDD-tests skills under a **lighter gate** (validate + permission-check + commit) that bypasses the full QA pipeline; declaring a *new dangerous tool* still requires operator acknowledgement. Deterministic muscle (TS scripts, CLIs, MCPs) is built as **Tools/Workflows by the Engineering Lead** via the promotion loop — never embedded in a skill (a bundle's `scripts/` folder is not executed).
+Skill testing is **EDD**: each bundle may include `evals/*.json` cases (`input`, `expectedBehavior`, optional `assertions`). The Skill Engineer's `eval-skill` tool runs deterministic instruction-aligned checks in-process; full agent scoring runs locally via `npm run eval:skills` (requires `OPENAI_API_KEY`, not CI). Side-effecting tools honor **`testMode`** on Mastra `RequestContext` — when on, they return a declared mock and emit `skill.tool_invoked` with `mocked: true`.
 
-Skill testing is **EDD**: `evals/` cases scored by Mastra scorers via `npm run eval:skills` (local-only). Every skill touchpoint emits Job-correlated telemetry (`skill.activated`, `skill.tool_invoked`, `skill.validated`, `skill.changed`, `skill.activation_failed`).
+Every skill touchpoint emits Job-correlated telemetry (`skill.activated`, `skill.tool_invoked`, `skill.validated`, `skill.changed`, `skill.activation_failed`).
+
+### Progressive loading
+
+The Engineering Lead (and Skill Engineer) use Mastra's auto-injected `skill` tool with `skillsFormat: "markdown"`. The agent sees a skill **index** in its prompt and loads full SOP bodies on demand — no eager concat of all skill bodies.
+
+### Scope and permissions
+
+Frontmatter `metadata.scope` is the source of truth (`shared` or `[agent-id, …]`). `resolveSkillsForAgent()` filters active skills by scope and authority; `validateSkill()` enforces `allowed-tools` ⊆ agent authority at validation time. Activation hooks on the Engineering Lead block out-of-scope loads and emit `skill.activation_failed`.
+
+### Skill Engineer (Phase 6)
+
+| Skill | Path | Scope | Role |
+|-------|------|-------|------|
+| `write-skill` | [write-skill/SKILL.md](./write-skill/SKILL.md) | `[skill-engineer]` | Meta-authoring SOP |
+| `skill-eval-design` | [skill-eval-design/SKILL.md](./skill-eval-design/SKILL.md) | `[skill-engineer]` | EDD case design SOP |
+
+Gateway: `npm run skill-gateway` (direct chat with the Skill Engineer). Lifecycle tools: `create-skill`, `edit-skill`, `validate-skill`, `eval-skill`, `deprecate-skill`, `archive-skill`, `request-tool-build`.
+
+### Eval commands
+
+| Command | When |
+|---------|------|
+| `npm run test` | CI — includes skill registry, permissions, telemetry, EDD plumbing, testMode fixture |
+| `npm run eval:skills` | Local-only — progressive-loading recall, code-review verdict shape, testMode fixture buckets |
 
 See [docs/phase-6-skill-platform.md](../docs/phase-6-skill-platform.md), [ADR 0009](../docs/adr/0009-mastra-agent-skills-substrate.md), and [ADR 0010](../docs/adr/0010-skill-permission-lifecycle.md).

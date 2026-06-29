@@ -74,27 +74,27 @@ telemetry, the Skill Engineer agent, and skill EDD. See
 
 # Acceptance Criteria
 
-- [ ] The 7 skills load via `skillRegistry`/Mastra with **progressive loading**; `skillLoader.ts` and
+- [x] The 7 skills load via `skillRegistry`/Mastra with **progressive loading**; `skillLoader.ts` and
       the eager concat are removed.
-- [ ] **Migration regression eval** is green (the engineering loop still works on-demand).
-- [ ] Frontmatter `scope` drives injection: `shared` → all agents; agent-scoped → only named agents.
-- [ ] **Authority invariant** holds: a skill whose `allowed-tools` exceed an agent's authority cannot
+- [x] **Migration regression eval** is green (the engineering loop still works on-demand).
+- [x] Frontmatter `scope` drives injection: `shared` → all agents; agent-scoped → only named agents.
+- [x] **Authority invariant** holds: a skill whose `allowed-tools` exceed an agent's authority cannot
       be injected; the **QA-Engineer-never-gets-authoring** test passes.
-- [ ] Validation flags bad name / over-long description / missing fields / missing declared tools, and
+- [x] Validation flags bad name / over-long description / missing fields / missing declared tools, and
       passes a clean skill (no false positive).
-- [ ] All five `skill.*` telemetry events are emitted with correct `session/job/trace` correlation;
+- [x] All five `skill.*` telemetry events are emitted with correct `session/job/trace` correlation;
       `skill.activation_failed` fires on an out-of-scope load attempt.
-- [ ] The **Skill Engineer** can create/edit/validate/EDD-test/deprecate/archive a skill under the
+- [x] The **Skill Engineer** can create/edit/validate/EDD-test/deprecate/archive a skill under the
       lighter gate; only its skill edits bypass QA (the agent itself shipped via full QA).
-- [ ] A skill change declaring a **new dangerous tool** triggers operator acknowledgement; an ordinary
+- [x] A skill change declaring a **new dangerous tool** triggers operator acknowledgement; an ordinary
       edit does not.
-- [ ] Skill Engineer **clearance**: employee cannot promote / use management-only tools.
-- [ ] `request-tool-build` creates a tracked Issue routed to the Engineering Lead.
-- [ ] **Test mode**: the fixture side-effecting tool returns its mock and suppresses the side effect
+- [x] Skill Engineer **clearance**: employee cannot promote / use management-only tools.
+- [x] `request-tool-build` creates a tracked Issue routed to the Engineering Lead.
+- [x] **Test mode**: the fixture side-effecting tool returns its mock and suppresses the side effect
       under `testMode`, marking telemetry `mocked: true`.
-- [ ] `npm run eval:skills` proves progressive-loading recall/precision, skill behavior, and authoring
+- [x] `npm run eval:skills` proves progressive-loading recall/precision, skill behavior, and authoring
       convergence locally; eval scripts documented.
-- [ ] ADR 0009 + ADR 0010 + `CONTEXT.md` vocabulary committed; north-star doc + `skills/README.md`
+- [x] ADR 0009 + ADR 0010 + `CONTEXT.md` vocabulary committed; north-star doc + `skills/README.md`
       current.
 
 # Technical Notes
