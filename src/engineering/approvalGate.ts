@@ -22,10 +22,50 @@ export type PendingApproval = {
 export type ApprovalState = {
   granted: Set<string>;
   pending?: PendingApproval;
+  /** toolId -> build session slug for session-scoped pre-authorization */
+  sessionGrants: Map<string, string>;
 };
 
 export function createApprovalState(): ApprovalState {
-  return { granted: new Set() };
+  return { granted: new Set(), sessionGrants: new Map() };
+}
+
+export function grantSessionApproval(
+  state: ApprovalState,
+  toolId: string,
+  buildSlug: string,
+): void {
+  if (!isDangerousTool(toolId)) {
+    throw new Error(`Tool is not dangerous: ${toolId}`);
+  }
+  state.sessionGrants.set(toolId, buildSlug);
+}
+
+export function consumeSessionApproval(
+  state: ApprovalState,
+  toolId: string,
+  buildSlug: string,
+): boolean {
+  const grantedSlug = state.sessionGrants.get(toolId);
+  if (!grantedSlug || grantedSlug !== buildSlug) {
+    return false;
+  }
+  return true;
+}
+
+export function clearSessionApproval(state: ApprovalState, toolId: string): void {
+  state.sessionGrants.delete(toolId);
+}
+
+export function clearSessionApprovalsForBuild(
+  state: ApprovalState,
+  buildSlug: string,
+): void {
+  for (const [toolId, slug] of state.sessionGrants.entries()) {
+    if (slug === buildSlug) {
+      state.sessionGrants.delete(toolId);
+    }
+  }
 }
 
 export function requestApproval(
