@@ -5,6 +5,8 @@ import { createAgentMemory } from "../agentMemory.js";
 import type { EngineeringSessionContext } from "../../engineering/sessionContext.js";
 import { filterToolsByAuthority } from "../../engineering/agentAuthority.js";
 import { resolveSkillsForAgent } from "../../skills/skillRegistry.js";
+import { createSkillTelemetry } from "../../skills/skillTelemetry.js";
+import { createSkillActivationHooks } from "../../skills/skillActivationHooks.js";
 
 const CORE_INSTRUCTIONS = `You are the MichaelOS **Engineering Lead** — the operator's production agent for the engineering loop.
 
@@ -70,6 +72,7 @@ export function createEngineeringLeadAgent(
   const memory = createAgentMemory(repoRoot);
 
   const skillPaths = resolveSkillsForAgent(repoRoot, "engineering-lead");
+  const skillTelemetry = createSkillTelemetry(ctx.observability);
 
   const managementTools = filterToolsByAuthority(
     {
@@ -105,6 +108,11 @@ export function createEngineeringLeadAgent(
     memory,
     skills: skillPaths,
     skillsFormat: "markdown",
+    hooks: createSkillActivationHooks({
+      repoRoot,
+      agentId: "engineering-lead",
+      skillTelemetry,
+    }),
     agents: qaEngineer
       ? {
           qaEngineer,

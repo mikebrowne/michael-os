@@ -14,6 +14,8 @@ import {
   validateSkillMetadata,
   type SkillValidationResult,
 } from "./skillValidation.js";
+import type { SkillTelemetry } from "./skillTelemetry.js";
+import type { ObservabilityCorrelation } from "../observability/observabilityEvent.js";
 
 /** Original Phase 6 migrated skill bundle names. */
 export const SKILL_BUNDLE_NAMES = [
@@ -286,6 +288,8 @@ function validateAllowedWorkflows(
 export function validateSkillRegistration(
   skill: SkillRegistration,
   instructions?: string,
+  telemetry?: SkillTelemetry,
+  correlation?: ObservabilityCorrelation,
 ): SkillValidateResult {
   const dirName = basename(skill.bundlePath);
   const mastraResult = validateSkillMetadata(
@@ -314,16 +318,22 @@ export function validateSkillRegistration(
     errors.push("Skill instructions body is empty");
   }
 
-  return {
+  const result = {
     valid: errors.length === 0,
     errors,
     warnings,
   };
+
+  telemetry?.validated(skill.name, result.valid, result.errors, correlation);
+
+  return result;
 }
 
 export function validateSkill(
   repoRoot: string,
   nameOrPath: string,
+  telemetry?: SkillTelemetry,
+  correlation?: ObservabilityCorrelation,
 ): SkillValidateResult {
   const name = nameOrPath.includes("/")
     ? basename(nameOrPath)
@@ -331,7 +341,7 @@ export function validateSkill(
   const skill = loadSkillRegistrationSync(repoRoot, name);
   const raw = readFileSync(join(skill.bundlePath, "SKILL.md"), "utf-8");
   const { instructions } = parseSkillFrontmatter(raw);
-  return validateSkillRegistration(skill, instructions);
+  return validateSkillRegistration(skill, instructions, telemetry, correlation);
 }
 
 /**
