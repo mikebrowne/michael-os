@@ -96,6 +96,7 @@ export function createEngineeringLeadAgent(
       readWorktreeFile: tools.readWorktreeFileTool,
       rerunTest: tools.rerunTestTool,
       tailBuildLog: tools.tailBuildLogTool,
+      comprehend: tools.comprehendTool,
       interruptBuild: tools.interruptBuild,
       runBuild: tools.runBuild,
       reviewBuild: tools.reviewBuild,

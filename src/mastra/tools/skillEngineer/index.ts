@@ -20,6 +20,8 @@ import {
 } from "../../../engineering/approvalGate.js";
 import { createIssue } from "../../../engineering/github.js";
 import { runDeterministicSkillEval } from "../../../skills/skillEvalRunner.js";
+import { runComprehension } from "../../../agentBuild/comprehension.js";
+import { requireCursorKey } from "../../../config/loadConfig.js";
 
 function parseScopeInput(scope: string | string[]): SkillScope {
   if (scope === "shared") return "shared";
@@ -260,6 +262,39 @@ Routed to **Engineering Lead** for build → QA → promote (not in-process dele
     },
   });
 
+  const comprehend = createTool({
+    id: "comprehend",
+    description:
+      "Read-only Cursor comprehension for reuse/integration questions (plan mode, disposable worktree).",
+    inputSchema: z.object({ question: z.string() }),
+    outputSchema: z.object({
+      answer: z.string(),
+      allCitationsVerified: z.boolean(),
+      verificationSummary: z.string(),
+    }),
+    execute: async (input) => {
+      requireCursorKey(ctx.config);
+      const result = await runComprehension({
+        config: ctx.config,
+        repoPath: ctx.repoPath,
+        question: input.question,
+        observability: ctx.observability,
+      });
+      const verificationSummary = result.verification
+        .map((v) =>
+          v.ok
+            ? `OK ${v.citation.path}`
+            : `FAIL ${v.citation.path}: ${v.reason}`,
+        )
+        .join("\n");
+      return {
+        answer: result.answer,
+        allCitationsVerified: result.allCitationsVerified,
+        verificationSummary: verificationSummary || "(no citations)",
+      };
+    },
+  });
+
   return {
     createSkill,
     editSkill,
@@ -268,5 +303,6 @@ Routed to **Engineering Lead** for build → QA → promote (not in-process dele
     deprecateSkill,
     archiveSkill,
     requestToolBuild,
+    comprehend,
   };
 }

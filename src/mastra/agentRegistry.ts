@@ -32,6 +32,7 @@ export const AGENT_REGISTRY: AgentRegistration[] = [
       "build-handoff",
       "ship",
       "code-review",
+      "cursor-comprehension",
     ],
     tools: [
       "save-grill-notes",
@@ -48,6 +49,7 @@ export const AGENT_REGISTRY: AgentRegistration[] = [
       "read-worktree-file",
       "rerun-test",
       "tail-build-log",
+      "comprehend",
       "run-build",
       "review-build",
       "verify-build",
@@ -92,7 +94,7 @@ export const AGENT_REGISTRY: AgentRegistration[] = [
       "Authors, edits, validates, and EDD-tests skills under the lighter gate.",
     directChat: true,
     standalone: true,
-    skills: ["write-skill", "skill-eval-design"],
+    skills: ["write-skill", "skill-eval-design", "cursor-comprehension"],
     tools: [
       "create-skill",
       "edit-skill",
@@ -101,6 +103,7 @@ export const AGENT_REGISTRY: AgentRegistration[] = [
       "deprecate-skill",
       "archive-skill",
       "request-tool-build",
+      "comprehend",
     ],
   },
   {

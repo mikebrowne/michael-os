@@ -68,6 +68,7 @@ import {
   tailBuildLog,
   resolveBuildWorktree,
 } from "../../../agentBuild/buildInspection.js";
+import { runComprehension } from "../../../agentBuild/comprehension.js";
 
 const DEFAULT_ACCEPTANCE_RELATIVE = "tests/acceptance/agent-build.test.ts";
 
@@ -1029,6 +1030,41 @@ export function createEngineeringTools(ctx: EngineeringSessionContext) {
     },
   });
 
+  const comprehendTool = createTool({
+    id: "comprehend",
+    description:
+      "Read-only Cursor comprehension (plan mode, disposable worktree). Cite-and-verify paths/symbols.",
+    inputSchema: z.object({
+      question: z.string(),
+    }),
+    outputSchema: z.object({
+      answer: z.string(),
+      allCitationsVerified: z.boolean(),
+      verificationSummary: z.string(),
+    }),
+    execute: async (input) => {
+      requireCursorKey(ctx.config);
+      const result = await runComprehension({
+        config: ctx.config,
+        repoPath: ctx.repoPath,
+        question: input.question,
+        observability: ctx.observability,
+      });
+      const verificationSummary = result.verification
+        .map((v) =>
+          v.ok
+            ? `OK ${v.citation.path}${v.citation.symbol ? `#${v.citation.symbol}` : ""}`
+            : `FAIL ${v.citation.path}: ${v.reason}`,
+        )
+        .join("\n");
+      return {
+        answer: result.answer,
+        allCitationsVerified: result.allCitationsVerified,
+        verificationSummary: verificationSummary || "(no citations extracted)",
+      };
+    },
+  });
+
   const interruptBuild = createTool({
     id: "interrupt-build",
     description:
@@ -1333,6 +1369,7 @@ export function createEngineeringTools(ctx: EngineeringSessionContext) {
     readWorktreeFileTool,
     rerunTestTool,
     tailBuildLogTool,
+    comprehendTool,
     interruptBuild,
     runBuild,
     verifyBuild,

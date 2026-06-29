@@ -63,6 +63,7 @@ export function createSkillEngineerAgent(
       deprecateSkill: tools.deprecateSkill,
       archiveSkill: tools.archiveSkill,
       requestToolBuild: tools.requestToolBuild,
+      comprehend: tools.comprehend,
     },
   });
 }
