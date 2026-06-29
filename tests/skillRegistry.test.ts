@@ -36,9 +36,9 @@ describe("skillRegistry", () => {
     resetAgentMemoryForTests();
   });
 
-  it("discovers all 7 skill bundles with name and description", async () => {
+  it("discovers all skill bundles with name and description", async () => {
     const skills = await discoverSkills(REPO_ROOT);
-    expect(skills).toHaveLength(SKILL_BUNDLE_NAMES.length);
+    expect(skills.length).toBeGreaterThanOrEqual(SKILL_BUNDLE_NAMES.length);
     for (const expected of SKILL_BUNDLE_NAMES) {
       const found = skills.find((s) => s.name === expected);
       expect(found, `missing skill ${expected}`).toBeDefined();

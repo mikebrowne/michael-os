@@ -10,6 +10,8 @@ import { createJobRunner } from "../engineering/jobRunner.js";
 import { demoAgent } from "./agents/demo-agent.js";
 import { createEngineeringLeadAgent } from "./agents/engineering-lead.js";
 import { createQaEngineerAgent } from "./agents/qa-engineer.js";
+import { createSkillEngineerAgent } from "./agents/skill-engineer.js";
+import { createSkillEngineerSessionContext } from "../skills/skillEngineerSession.js";
 import { demoWorkflow } from "./workflows/demo-workflow.js";
 import { buildVerificationWorkflow } from "./workflows/buildVerificationWorkflow.js";
 import { listAgents } from "./agentRegistry.js";
@@ -24,6 +26,8 @@ export type MastraHarness = {
   jobRunner: ReturnType<typeof createJobRunner>;
   runLogger: ReturnType<typeof createRunLogger>;
   qaEngineerAgent: ReturnType<typeof createQaEngineerAgent>;
+  skillEngineerAgent: ReturnType<typeof createSkillEngineerAgent>;
+  skillEngineerSession: ReturnType<typeof createSkillEngineerSessionContext>;
   engineeringLeadAgent: ReturnType<typeof createEngineeringLeadAgent>;
   engineeringSession: ReturnType<typeof createEngineeringSessionContext>;
   agentRegistry: ReturnType<typeof listAgents>;
@@ -63,6 +67,17 @@ export function createMastraHarness(
     repoPath,
   );
 
+  const skillEngineerSession = createSkillEngineerSessionContext(config, {
+    observability: observabilityStore,
+    repoPath,
+  });
+
+  const skillEngineerAgent = createSkillEngineerAgent(
+    config.defaultModel,
+    skillEngineerSession,
+    repoPath,
+  );
+
   const engineeringLeadAgent = createEngineeringLeadAgent(
     config.defaultModel,
     engineeringSession,
@@ -81,7 +96,7 @@ export function createMastraHarness(
   const agentRegistry = listAgents();
 
   const mastra = new Mastra({
-    agents: { demoAgent, engineeringLeadAgent, qaEngineerAgent },
+    agents: { demoAgent, engineeringLeadAgent, qaEngineerAgent, skillEngineerAgent },
     workflows: { demoWorkflow, buildVerificationWorkflow },
     storage,
     logger: new PinoLogger({
@@ -98,6 +113,8 @@ export function createMastraHarness(
     jobRunner,
     runLogger,
     qaEngineerAgent,
+    skillEngineerAgent,
+    skillEngineerSession,
     engineeringLeadAgent,
     engineeringSession,
     agentRegistry,

@@ -58,6 +58,14 @@ export function needsApprovalMessage(toolId: string): string {
   return `The "${toolId}" action requires your approval. Reply YES to proceed or NO to cancel.`;
 }
 
+export function grantPendingApproval(state: ApprovalState): boolean {
+  const id = state.pending?.toolId;
+  if (!id) return false;
+  state.granted.add(id);
+  state.pending = undefined;
+  return true;
+}
+
 export function parseYesNo(input: string): "yes" | "no" | null {
   const normalized = input.trim().toLowerCase();
   if (["yes", "y", "approve", "ok", "proceed"].includes(normalized)) return "yes";

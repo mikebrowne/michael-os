@@ -77,6 +77,26 @@ export const AGENT_REGISTRY: AgentRegistration[] = [
     tools: ["review-build"],
   },
   {
+    id: "skill-engineer",
+    role: "Skill Engineer",
+    kind: "mastra-agent",
+    authority: "employee",
+    description:
+      "Authors, edits, validates, and EDD-tests skills under the lighter gate.",
+    directChat: true,
+    standalone: true,
+    skills: ["write-skill", "skill-eval-design"],
+    tools: [
+      "create-skill",
+      "edit-skill",
+      "validate-skill",
+      "eval-skill",
+      "deprecate-skill",
+      "archive-skill",
+      "request-tool-build",
+    ],
+  },
+  {
     id: "spec-planning-test",
     role: "Spec / Planning / Test",
     kind: "skill",
