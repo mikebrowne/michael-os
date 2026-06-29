@@ -25,6 +25,11 @@ import {
   formatJobDetail,
   formatJobListLine,
 } from "./jobFormatting.js";
+import {
+  isBuildInFlight,
+  interruptSteerableBuild,
+} from "../agentBuild/steerableBuild.js";
+import { createRunLogger } from "../logging/runLogger.js";
 
 export type GatewayRuntime = {
   agent: Agent;
@@ -60,6 +65,26 @@ export async function processGatewayLine(
 
   if (!trimmed) {
     return { output };
+  }
+
+  const interruptCommands = ["stop", "cancel"];
+  if (interruptCommands.includes(trimmed.toLowerCase())) {
+    const slug = runtime.ctx.currentWorkItem?.slug;
+    if (slug && isBuildInFlight(slug)) {
+      const runLogger = createRunLogger({
+        logDir: runtime.config.logDir,
+        logLevel: runtime.config.logLevel,
+        name: runtime.config.appName,
+      });
+      const result = await interruptSteerableBuild({
+        config: runtime.config,
+        slug,
+        observability: runtime.ctx.observability,
+        runLogger,
+      });
+      output.push(`\nengineering-lead> ${result.message}\n`);
+      return { output };
+    }
   }
 
   if (["exit", "quit", "q"].includes(trimmed.toLowerCase())) {

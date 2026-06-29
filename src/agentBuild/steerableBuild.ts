@@ -38,8 +38,10 @@ import {
 } from "./buildChecklist.js";
 import { createBuildTelemetry, type BuildTelemetry } from "./buildTelemetry.js";
 import { runSliceVerification } from "./sliceVerification.js";
-import type { DurableSession } from "./types.js";
+import type { DurableRunHandle, DurableSession } from "./types.js";
 import type { ObservabilityStore } from "../observability/observabilityStore.js";
+import type { SDKMessage } from "@cursor/sdk";
+import { buildStreamBus } from "./buildStreamBus.js";
 
 const PLAN_PROMPT_PREFIX =
   "Do not write any code. Research the codebase and produce a reviewable implementation plan with a checklist. Make reasonable assumptions and state them if requirements are ambiguous.";
@@ -100,6 +102,58 @@ type ActiveSession = {
 };
 
 const activeSessions = new Map<string, ActiveSession>();
+const inFlightRuns = new Map<string, DurableRunHandle>();
+const backgroundDispatchTasks = new Map<string, Promise<SteerableBuildDispatchResult>>();
+
+export function isBuildInFlight(slug: string): boolean {
+  return inFlightRuns.has(slug) || backgroundDispatchTasks.has(slug);
+}
+
+async function pumpRunStream(slug: string, run: DurableRunHandle): Promise<void> {
+  try {
+    for await (const message of run.stream()) {
+      emitStreamMessage(slug, message);
+    }
+  } catch {
+    // stream may end when run completes
+  }
+}
+
+function emitStreamMessage(slug: string, message: SDKMessage): void {
+  if (message.type === "assistant") {
+    for (const block of message.message.content) {
+      if (block.type === "text" && block.text.trim()) {
+        buildStreamBus.emitEvent({
+          slug,
+          kind: "progress",
+          message: block.text.slice(0, 800),
+        });
+      }
+    }
+  }
+  if (
+    message.type === "tool_call" &&
+    message.status === "completed" &&
+    message.name === "updateTodos"
+  ) {
+    buildStreamBus.emitEvent({
+      slug,
+      kind: "todo",
+      message: "Todos updated",
+      data: { args: message.args },
+    });
+  }
+}
+
+async function waitRunWithStream(
+  slug: string,
+  run: DurableRunHandle,
+): Promise<Awaited<ReturnType<DurableRunHandle["wait"]>>> {
+  const pump = pumpRunStream(slug, run);
+  const result = await run.wait();
+  await pump.catch(() => undefined);
+  return result;
+}
 
 export function getActiveSteerableSession(slug: string): ActiveSession | undefined {
   return activeSessions.get(slug);
@@ -422,7 +476,15 @@ export async function runSteerableDispatchSlice(options: {
       message: buildPrompt,
       mode: "agent",
     });
-    const result = await run.wait();
+    inFlightRuns.set(slug, run);
+    buildStreamBus.emitEvent({
+      slug,
+      kind: "slice_started",
+      message: `Slice ${index + 1}: ${slice.title}`,
+    });
+
+    const result = await waitRunWithStream(slug, run);
+    inFlightRuns.delete(slug);
 
     if (result.status === "error" || result.status === "cancelled") {
       record.slices = record.slices.map((s, i) =>
@@ -471,6 +533,12 @@ export async function runSteerableDispatchSlice(options: {
     });
     active.record = record;
 
+    buildStreamBus.emitEvent({
+      slug,
+      kind: "slice_complete",
+      message: verify.passed ? "Slice verify PASS" : "Slice verify FAIL",
+    });
+
     return {
       ok: true,
       session: record,
@@ -489,11 +557,97 @@ export async function runSteerableDispatchSlice(options: {
         .join("\n"),
     };
   } catch (error: unknown) {
+    inFlightRuns.delete(slug);
     return {
       ok: false,
       error: error instanceof Error ? error.message : String(error),
     };
   }
+}
+
+export function startSteerableDispatchSliceBackground(
+  options: Parameters<typeof runSteerableDispatchSlice>[0],
+): { started: boolean; message: string } {
+  const { slug } = options;
+  if (backgroundDispatchTasks.has(slug) || inFlightRuns.has(slug)) {
+    return {
+      started: false,
+      message: `Build for ${slug} already has an in-flight slice.`,
+    };
+  }
+
+  const task = runSteerableDispatchSlice(options)
+    .then((result) => {
+      buildStreamBus.emitEvent({
+        slug,
+        kind: result.ok ? "slice_complete" : "error",
+        message: result.ok ? result.message : (result.error ?? "dispatch failed"),
+      });
+      return result;
+    })
+    .finally(() => {
+      backgroundDispatchTasks.delete(slug);
+    });
+
+  backgroundDispatchTasks.set(slug, task);
+  buildStreamBus.emitEvent({
+    slug,
+    kind: "progress",
+    message: "Slice dispatch started (non-blocking).",
+  });
+
+  return {
+    started: true,
+    message: "Slice dispatch started in background. Use build-status or watch stream output.",
+  };
+}
+
+export async function interruptSteerableBuild(options: {
+  config: AppConfig;
+  slug: string;
+  observability: ObservabilityStore;
+  runLogger?: RunLogger;
+  correctiveMessage?: string;
+}): Promise<{ ok: boolean; message: string }> {
+  const { slug, observability, runLogger, correctiveMessage, config } = options;
+  const telemetry = createBuildTelemetry(observability, runLogger);
+  const run = inFlightRuns.get(slug);
+
+  if (run) {
+    if (run.supports("cancel")) {
+      await run.cancel();
+    }
+    inFlightRuns.delete(slug);
+    telemetry.logInterrupted({ slug, reason: "operator" });
+    buildStreamBus.emitEvent({
+      slug,
+      kind: "interrupted",
+      message: "In-flight slice cancelled.",
+    });
+  } else {
+    backgroundDispatchTasks.delete(slug);
+    buildStreamBus.emitEvent({
+      slug,
+      kind: "interrupted",
+      message: "Background dispatch cleared.",
+    });
+  }
+
+  if (correctiveMessage) {
+    const started = startSteerableDispatchSliceBackground({
+      config,
+      slug,
+      observability,
+      runLogger,
+      correctiveMessage,
+    });
+    return {
+      ok: true,
+      message: `Interrupted. ${started.message}`,
+    };
+  }
+
+  return { ok: true, message: "Build slice interrupted." };
 }
 
 export async function finalizeSteerableBuild(options: {

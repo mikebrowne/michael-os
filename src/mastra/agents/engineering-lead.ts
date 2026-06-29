@@ -41,6 +41,7 @@ The review runs as a tracked Job. Wait for the verdict and fold it into the D+ r
 | plan-build | Plan-mode durable session; capture checklist (needs YES) |
 | dispatch-slice | Dispatch one bounded slice (needs YES) |
 | build-status | Show steerable build session status |
+| interrupt-build | Cancel in-flight slice; optional corrective dispatch |
 | run-build | Legacy one-shot hand off to Cursor (needs YES) |
 | review-build | Delegate advisory code review after green build |
 | ship-docs | Commit/push PRD + grill notes (needs YES) |
@@ -89,6 +90,7 @@ export function createEngineeringLeadAgent(
       planBuild: tools.planBuild,
       dispatchSlice: tools.dispatchSlice,
       buildStatus: tools.buildStatus,
+      interruptBuild: tools.interruptBuild,
       runBuild: tools.runBuild,
       reviewBuild: tools.reviewBuild,
       verifyBuild: tools.verifyBuild,

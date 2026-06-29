@@ -26,6 +26,10 @@ import {
   restartLifecycleBus,
   type RestartLifecycleEvent,
 } from "./restart.js";
+import {
+  buildStreamBus,
+  formatBuildStreamMessage,
+} from "../agentBuild/buildStreamBus.js";
 
 export const DEFAULT_GATEWAY_HOST = "127.0.0.1";
 export const DEFAULT_GATEWAY_PORT = 47821;
@@ -114,13 +118,17 @@ export async function createGatewayDaemonRuntime(
     broadcastToClients(`\n${formatRestartLifecycleMessage(event)}\n`);
   });
 
+  buildStreamBus.onStream((event) => {
+    broadcastToClients(`\n${formatBuildStreamMessage(event)}\n`);
+  });
+
   emitHarnessBackUp(resolveHeadCommitSha(repoPath));
 
   const server = createServer((socket: Socket) => {
     connectedSockets.add(socket);
     let buffer = "";
     socket.write("MichaelOS Engineering Gateway (daemon)\n");
-    socket.write("Commands: exit | resume #N | list | jobs | job <id> | health | promotions | restart\n\n");
+    socket.write("Commands: exit | resume #N | list | jobs | job <id> | builds | build <id> | stop | cancel | health | promotions | restart\n\n");
 
     socket.on("close", () => {
       connectedSockets.delete(socket);

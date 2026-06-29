@@ -56,6 +56,8 @@ import {
 import {
   runSteerablePlanPhase,
   runSteerableDispatchSlice,
+  startSteerableDispatchSliceBackground,
+  interruptSteerableBuild,
   finalizeSteerableBuild,
   getSteerableBuildStatus,
 } from "../../../agentBuild/steerableBuild.js";
@@ -70,6 +72,7 @@ type DispatchSliceInput = {
   correctiveMessage?: string;
   targetedTestFiles?: string[];
   finalize?: boolean;
+  blocking?: boolean;
 };
 
 type RunBuildInput = { slug: string; requestSummary?: string };
@@ -857,6 +860,7 @@ export function createEngineeringTools(ctx: EngineeringSessionContext) {
       correctiveMessage: z.string().optional(),
       targetedTestFiles: z.array(z.string()).optional(),
       finalize: z.boolean().optional(),
+      blocking: z.boolean().optional(),
     }),
     outputSchema: z.object({
       needsApproval: z.boolean().optional(),
@@ -883,7 +887,7 @@ export function createEngineeringTools(ctx: EngineeringSessionContext) {
         name: ctx.config.appName,
       });
 
-      const dispatch = await runSteerableDispatchSlice({
+      const dispatchOptions = {
         config: ctx.config,
         slug,
         observability: ctx.observability,
@@ -891,7 +895,17 @@ export function createEngineeringTools(ctx: EngineeringSessionContext) {
         sliceIndex: input.sliceIndex,
         correctiveMessage: input.correctiveMessage,
         targetedTestFiles: input.targetedTestFiles,
-      });
+      };
+
+      if (!input.blocking) {
+        const started = startSteerableDispatchSliceBackground(dispatchOptions);
+        return {
+          message: started.message,
+          allSlicesComplete: false,
+        };
+      }
+
+      const dispatch = await runSteerableDispatchSlice(dispatchOptions);
 
       if (!dispatch.ok) {
         return { message: dispatch.error };
@@ -933,6 +947,37 @@ export function createEngineeringTools(ctx: EngineeringSessionContext) {
       const slug = input.slug ?? ctx.currentWorkItem?.slug;
       if (!slug) throw new Error("No work item slug for build-status.");
       return { message: getSteerableBuildStatus(ctx.config, slug) };
+    },
+  });
+
+  const interruptBuild = createTool({
+    id: "interrupt-build",
+    description:
+      "Cancel an in-flight build slice and optionally send a corrective follow-up dispatch.",
+    inputSchema: z.object({
+      slug: z.string().optional(),
+      correctiveMessage: z.string().optional(),
+    }),
+    outputSchema: z.object({
+      message: z.string(),
+      ok: z.boolean().optional(),
+    }),
+    execute: async (input) => {
+      const slug = input.slug ?? ctx.currentWorkItem?.slug;
+      if (!slug) throw new Error("No work item slug for interrupt-build.");
+      const runLogger = createRunLogger({
+        logDir: ctx.config.logDir,
+        logLevel: ctx.config.logLevel,
+        name: ctx.config.appName,
+      });
+      const result = await interruptSteerableBuild({
+        config: ctx.config,
+        slug,
+        observability: ctx.observability,
+        runLogger,
+        correctiveMessage: input.correctiveMessage,
+      });
+      return { message: result.message, ok: result.ok };
     },
   });
 
@@ -1206,6 +1251,7 @@ export function createEngineeringTools(ctx: EngineeringSessionContext) {
     planBuild,
     dispatchSlice,
     buildStatus,
+    interruptBuild,
     runBuild,
     verifyBuild,
     reviewBuild,

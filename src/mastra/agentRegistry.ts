@@ -44,6 +44,7 @@ export const AGENT_REGISTRY: AgentRegistration[] = [
       "plan-build",
       "dispatch-slice",
       "build-status",
+      "interrupt-build",
       "run-build",
       "review-build",
       "verify-build",
