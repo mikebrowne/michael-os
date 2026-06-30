@@ -35,6 +35,11 @@ describe("delegation machinery", () => {
       stateDir: join(dir, "state"),
       mastraDir: join(dir, ".mastra"),
       logDir: join(dir, "logs"),
+      // The reviewer agent is mocked (createMockReviewerAgent), so no real model
+      // call is made. A non-placeholder fake key satisfies review-build's
+      // fail-fast requireOpenAiKey guard so this delegation-machinery test runs
+      // in keyless CI (CI must run with zero secrets).
+      openaiApiKey: "test-only-key",
     };
     try {
       const observability = createObservabilityStore({
