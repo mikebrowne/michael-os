@@ -64,11 +64,15 @@ Also skim how Phase 6 was built (skillRegistry, skill bundles, Skill Engineer) a
      +agent, eval matrix + CI green.
 - Every behavior change ships a test/eval. Nothing the system authors may activate without its own
   passing check. Red/green discipline (write the failing test first).
-- Per slice: implement → keep CI green (see below) → commit (clear message, conventional style like the
-  existing history) → push → open/update a PR with "Closes #<slice issue>" → check in with the operator
-  before the next slice.
-- Use the PR template. Draft PRs by default. Do not merge/auto-merge. Do not force-push or rewrite
-  history. Do not leave the branch you're on without asking.
+- Build the WHOLE phase in one continuous run — do NOT pause for operator approval between slices.
+  Work on a SINGLE phase-7 branch for all slices; make one clean commit per slice (conventional style
+  like the existing history) so the history stays sliced and reversible; push as you go and maintain ONE
+  draft PR for the phase, keeping its body updated with per-slice progress and "Closes #<issue>" lines.
+- Per slice: implement → keep CI green (see below) → commit → push. Then continue straight to the next
+  slice. Only stop early for a genuine blocker (e.g., an assumed framework API doesn't exist — apply the
+  documented fallback or, if truly stuck, surface it) — otherwise run through all of BL-014a..g.
+- Use the PR template. Keep the PR a draft. Do not merge/auto-merge and do not mark it ready for review.
+  Do not force-push or rewrite history.
 
 ## CI must stay green (it is green on main now — keep it that way)
 - CI runs `npm run typecheck && npm run lint && npm run build && npm test` with ZERO secrets (no
@@ -95,6 +99,10 @@ Also skim how Phase 6 was built (skillRegistry, skill bundles, Skill Engineer) a
   BL-014x IDs in your branch names/PRs, and note in your summary that the issues still need filing.
 
 ## Start
-Begin with Slice 1 (BL-014b) after confirming Slice 0 is complete. Post a short plan for BL-014b
-(files you'll add/change + the test you'll write first, all keyless-CI-safe) and proceed.
+Build the ENTIRE phase — slices BL-014a through BL-014g — in order, in ONE continuous run, without
+stopping for approval between slices. Post a brief up-front plan for the whole phase (the files/skills/
+tools/agent-bundles you'll add per slice and the key tests you'll write first, all keyless-CI-safe),
+then proceed through every slice. Keep CI green at each commit. Finish only when all slices are done,
+CI is green keyless, and the north-star exit criteria in docs/phase-7-authoring-agents.md are met — then
+summarize what landed and what (if anything, e.g. filing the BL-014 issues) still needs the operator.
 ```
