@@ -310,21 +310,56 @@ beyond a minimal status surface, and the autonomous authoring agents (Phase 7).
 
 The system can safely extend itself.
 
+> **Grilled 2026-06-30 — "notices and proposes," not unattended self-modification.** Phase 7 adopts
+> autonomy **posture B**: the system may **notice a need or be asked**, **propose** the work as a
+> reviewable backlog Issue (user story + technical *and* non-technical detail) *before* any code, and
+> **draft** it — but **activation is always an explicit, logged operator decision** and everything is
+> reversible. The *judgment* of **when/whether/how to extend** (skill vs tool vs workflow vs new agent)
+> lives in an **editable markdown authoring-policy skill**; the muscle (scaffold/validate/register/test)
+> lives in tools. New authoring capabilities are handed to the **Engineering Lead** (tools/workflows) and
+> the **Skill Engineer** (skills) — **no new standalone agents**; the Hiring judgment is a skill on the
+> EL for now. Build order is **Skill Author → Tool Author → Workflow Author → Hiring**. See
+> [docs/phase-7-authoring-agents.md](./docs/phase-7-authoring-agents.md),
+> [grill notes](./docs/prds/phase-7-authoring-agents.grill.md),
+> [ADR 0013](./docs/adr/0013-autonomous-authoring-safe-activation.md),
+> [ADR 0014](./docs/adr/0014-agent-bundles-dynamic-registration.md).
+
 ### User Stories
 
-* Skill Author Agent
-* Tool Author Agent
-* Workflow Author Agent
-* Hiring Agent
-* Staged promotion
-* Engineering review
-* Safe activation
+* **Skill Author** — the Skill Engineer gains an autonomous notice→propose→draft mode (lighter gate)
+* **Tool Author** — an Engineering Lead capability that **hardens a hot skill into a promoted tool**
+  (the determinism ratchet, made literal), riding the full code pipeline
+* **Workflow Author** — an Engineering Lead capability (workflows are code → full pipeline)
+* **Hiring + Onboarding** — agents become **committed bundles** (config + folder) that are the source of
+  truth, loaded via Mastra; a **hiring** skill (may grill the operator) + an **onboarding** skill with a
+  must-pass **onboarding smoke-test** before activation
+* **Staged promotion / Engineering review** — authored *code* rides the existing Phase 5 rails (build →
+  staged PR → QA review → promotion); authored *skills* ride the Phase 6 lighter gate
+* **Safe activation** — reuse the per-type gates + one logged operator "activate" yes; everything
+  reversible; a **single approval seam** designed to loosen later (the trust dial)
 
-Note (from Phase 6 grill): the **Tool Author** must enforce the **tool test-mode/mock contract** — every tool with side effects (external writes, message-sending) must support a `testMode` flag (propagated via `requestContext`) that returns a declared mock instead of performing the side effect, ship that mock as part of the tool, and include a test. Phase 6 establishes the `testMode` channel + contract + a fixture; Phase 7 makes the enforcement automated (e.g. a CI/permission-scan check that side-effecting tools declare a mock). Captured here so it is not lost.
+Decision (from the Phase 6 grill, now scoped): the **Tool Author** enforces the **tool test-mode/mock
+contract** (#40 / BL-013) — every side-effecting tool (external writes, message-sending) must support a
+`testMode` flag (via `requestContext`) returning a declared mock instead of the real effect, ship that
+mock as part of the tool, and include a test. Phase 6 built the channel + contract + fixture; Phase 7
+makes it a **blocking-but-overridable gate** (CI / permission-scan), reusing the Phase 5 permission-scan
++ approval-audit.
 
-Note: I had a though about adding agents w/o needing to restart the gateway. What if an agent can just be a YAML like file and we have a set of code that just creates the agents based on the YAML? That way we aren't changing any .ts files. By doing this, it may be easier to have the system spin up its own agents.
+Decision (the YAML-agents idea, now scoped → ADR 0014): an agent is a **committed bundle** —
+`agents/<id>/agent.(yaml|md)` config + the agent's own workspace folder — and the **committed file is the
+source of truth** (no `.ts` edits to add an agent), with `agentRegistry` demoted to a **derived view**.
+The runtime loader **reuses Mastra** (`addAgent` + Stored-Agents dependency resolution); the reliable
+path is scan-at-startup + the Phase 5 controlled restart, with **live slot-in (no restart) as a bonus**
+where the installed Mastra supports it.
 
-Note: for the hiring agent, we probably want to have a hiring process (probably a hiring skill or onboarding skill or something) that outlines what needs to happen to hire or onboard a new agent (would hiring and onboarding be 2 different things? Maybe!)
+Decision (hiring vs onboarding, now scoped → ADR 0013): they are **two steps** — **hiring** (decide +
+write the job description, ending in operator go-ahead, may grill) and **onboarding** (wire skills/
+memory/registration + a must-pass smoke-test before activation).
+
+Out of scope → **Phase 14 trust**: fully autonomous activation (posture C) and the full approval
+**policy/trust engine** (Phase 7 builds only the loosenable seam). Deferred: breakage-driven proposals
+(overlap the Debugger, Phase 4c), a dedicated "HR" agent, "adapt from external skill" (BL-011), and
+aggregate skill-metrics dashboards (BL-012) beyond the minimal "used-a-lot" signal.
 
 # Phase 8: Chief of Staff
 
