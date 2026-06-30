@@ -140,6 +140,76 @@ _Avoid_: "retry loop" (it is triaged + bounded, not blind retry)
 **`staged`** (build green, PR open, verification running), **`blocked`** (remediation cap hit / needs an operator decision), and **`parked`** (set aside but recoverable — branch kept, PR kept open as a draft with a `parked` label, issue returned to the **Backlog** column, resumable via `resume #N`). `parked` ≠ `abandoned`: parked means "will revisit," abandoned means "won't do."
 _Avoid_: conflating `parked` (resumable) with `abandoned` (terminal)
 
+**Safe self-extension (Phase 7)**:
+The system's ability to **build new pieces of itself** — skills, tools, workflows, even agents — under
+autonomy **posture B ("notices and proposes")**: it may spot a need or be asked, **propose** the work
+as a reviewable artifact, **draft** it (with its own passing test/eval), and run the existing safety
+rails, but **activation is always an explicit, logged operator decision** and everything is reversible.
+The emphasis is **safely**: autonomous *drafting + proposal + safe activation*, not unattended
+self-modification (that is Phase 14 trust).
+_Avoid_: "self-modifying" (loosely), implying unattended activation; posture C is out of scope.
+
+**Authoring-policy skill**:
+The **editable markdown skill** that holds the judgment of *when/whether/how to extend the system* — and
+which **form** a need should take (**skill vs tool vs workflow vs new agent**). Deliberately a skill
+(probabilistic judgment, rewritable as the operator's philosophy evolves), not hard-coded logic; the
+deterministic muscle (scaffold / validate / register / test) stays in tools. Designed to be shareable
+with the Phase 4b Engagement Manager's build-vs-reuse triage.
+_Avoid_: "authoring rules engine" (it is judgment in markdown, not code).
+
+**Skill Author / Tool Author / Workflow Author**:
+The **autonomous authoring capabilities** (Phase 7), each a judgment skill on top of deterministic tools
+(+ an optional workflow), handed to an **existing** agent rather than a new hire: **Skill Author** = the
+**Skill Engineer** gaining an autonomous notice→propose→draft mode (lighter gate); **Tool Author** and
+**Workflow Author** = capabilities on the **Engineering Lead** (building/promoting code is already its
+job and authority), riding the **full code pipeline**. The Tool Author is the determinism ratchet made
+literal — it **hardens a hot skill into a promoted tool** — and it enforces the **mock contract** (#40).
+_Avoid_: "Skill Author = a new agent" (it is the Skill Engineer with initiative); "Author" for the
+operator-driven Skill Engineer (that is Phase 6).
+
+**Proposal gate / pending-proposals queue**:
+The "should we even do this?" checkpoint **before any code**: the system drafts a **backlog GitHub
+Issue** (user story + technical *and* non-technical detail) for operator go-ahead, reusing the grill →
+PRD → `github-create-issue` flow. The **backlog itself is the visible pending-proposals queue** — no
+separate gadget. Under low trust this is the *first* of two operator checkpoints (the second is
+activation).
+_Avoid_: "proposal inbox" (it is the GitHub backlog), "auto-build" (the gate precedes building).
+
+**Safe activation**:
+Bringing a freshly-authored artifact **live** only through the safety path that fits it — the Phase 6
+**lighter gate** (skills), the Phase 5 **full pipeline** (tools/workflows), or a **new explicit
+activation step + onboarding smoke-test** (agents) — with one rule on top: **a logged operator
+"activate" yes**, and a required **passing test/eval** shipped with the artifact, and full reversibility
+(git revert / set to draft / de-register).
+_Avoid_: "deploy"/"release" (those are other concepts); "activate" without the logged operator yes.
+
+**Approval seam / trust dial**:
+The **single checkpoint function** every "ask the operator" moment routes through — hardwired today to
+"always ask you" (reusing the Phase 5 approval-audit), but **structured so a future trust policy (Phase
+14) can answer 'auto-approve when conditions hold'** for low-risk categories **without re-plumbing**.
+Phase 7 builds only the **seam** (low-trust now, designed to loosen); the full approval **policy/trust
+engine** is Phase 14.
+_Avoid_: "policy engine" for the Phase 7 seam (the engine is Phase 14); "permanent gate" (it is a dial).
+
+**Agent bundle**:
+An agent's directory — `agents/<id>/agent.(yaml|md)` config (the "job description": role, authority,
+model, tools, skills, `directChat`, `standalone`) plus the agent's own workspace folder (agent-scoped
+skills / examples / evals / memory config) — mirroring the **skill bundle**. The **committed bundle is
+the single source of truth** (public-safe, reviewable, git-reversible); `agentRegistry` becomes a
+**derived, validated view** and **no `.ts` edits are needed to add an agent**. The runtime loader
+**reuses Mastra** (`addAgent` + Stored-Agents dependency resolution); the gitignored `.mastra/` store is
+a throwaway cache. See ADR 0014.
+_Avoid_: "agent file" (the bundle is the directory); "Mastra Stored Agent as the truth" (that is a cache).
+
+**Hiring / Onboarding**:
+The **two steps** of standing up a new agent (Phase 7). **Hiring** = the judgment — should we add this
+role, and what is its job description (the bundle config) — ending in the operator go-ahead (the
+proposal gate); the hiring skill **may grill the operator** (reuse `grill-me-with-docs`), auto-answerable
+later via the trust dial. **Onboarding** = wiring its starter skills/memory/registration and running an
+**onboarding smoke-test it must pass before activation** (a probation beat). In Phase 7 both are
+**skills on the Engineering Lead** (a dedicated "HR" agent is a later, reversible upgrade).
+_Avoid_: collapsing hiring (decide + job description) and onboarding (wire + probation) into one step.
+
 ## Kinds of work (the determinism ratchet)
 
 Two axes describe every unit of work:
