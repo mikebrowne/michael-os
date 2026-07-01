@@ -1,0 +1,13 @@
+# Engagement Manager triage and necessity verdicts
+
+The old **Necessity Reviewer** ("Ponytail") was deferred from Phase 4 and rescoped as the **Engagement Manager** in Phase 4b ([init.md](../../init.md)). Its job is intake → **build-vs-reuse triage** → route to the right engineering specialist. Phase 6.5 shipped **codebase comprehension** as a shared read-only capability ([ADR 0012](./0012-cursor-comprehension-mode.md)); Phase 6 shipped deterministic **registries** (`agentRegistry`, `skillRegistry`, tool lists). Phase 4b wires these into a coordinator agent.
+
+**Decision:** implement the Engagement Manager as a Mastra **supervisor agent** ([ADR 0005](./0005-agentic-orchestration-layer.md)) with **Engineering Lead** and **Skill Engineer** as sub-agents. Triage decomposes into three sources per the determinism ratchet: **(1) registries** — deterministic keyword scan; **(2) comprehension** — `runComprehension` for multi-hop "does this already exist?"; **(3) framework-first** — judgment citing Mastra/docs (no new scraper in 4b). The EM invokes the **`author-policy`** skill for form selection (skill vs tool vs workflow vs agent) rather than duplicating that judgment.
+
+When triage completes, the harness writes a reviewable **`necessity-verdict.md`** under `<stateDir>/<work-item-slug>/` with YAML frontmatter: `decision: build | reuse | adapt`, `rationale`, `sources[]` (each tagged `registry | comprehension | framework-first`), `timestamp`, optional `routedTo`. A correlated **`necessity.verdict`** JSONL run-log event records the same fields for observability. The gateway exposes **`verdict`** to print the latest verdict for the current work item.
+
+The Engagement Manager is **engineering-scoped** — it does not produce org-wide delegation summaries or cross-department context routing (that is **Chief of Staff**, Phase 8). Employee authority: EM cannot promote, roll back, or run dangerous build tools; it routes to management (EL) or the Skill Engineer.
+
+Considered alternatives: **Necessity Reviewer as a separate delegated Job kind** — deferred; EM subsumes the conversational role; a second job kind adds machinery without 4b user-story value. **Hard-coded triage rules only** — rejected; comprehension is required for genuine reuse questions. **Duplicate author-policy logic in EM instructions** — rejected; share the skill per Phase 7 design. **Verdict only in chat, not on disk** — rejected; reviewable artifacts are a build-system requirement.
+
+The trade-off is a new agent plus triage glue; we accept it because multi-agent chat without intake/triage would leave the operator routing manually, and the three-source model reuses existing Phase 6/6.5 investments.

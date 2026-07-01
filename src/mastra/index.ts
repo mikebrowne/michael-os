@@ -12,6 +12,7 @@ export const {
   runLogger,
   qaEngineerAgent,
   skillEngineerAgent,
+  engagementManagerAgent,
   skillEngineerSession,
   engineeringLeadAgent,
   engineeringSession,

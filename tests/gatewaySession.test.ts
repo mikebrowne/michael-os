@@ -1,74 +1,16 @@
 import { describe, expect, it } from "vitest";
-import { mkdtempSync, rmSync } from "node:fs";
-import { join } from "node:path";
-import { tmpdir } from "node:os";
-import type { Agent } from "@mastra/core/agent";
-import type { Memory } from "@mastra/memory";
-import { loadConfig } from "../src/config/loadConfig.js";
-import { createEngineeringSessionContext } from "../src/engineering/sessionContext.js";
-import { createGatewayMemorySession } from "../src/engineering/gatewaySession.js";
+import { processGatewayLine } from "../src/gateway/session.js";
+import { getThreadIdForRoute } from "../src/gateway/gatewayRouteRegistry.js";
 import {
-  createGatewayRuntime,
-  processGatewayLine,
-} from "../src/gateway/session.js";
-import { createJobRegistry } from "../src/engineering/jobRegistry.js";
-import { createJobRunner } from "../src/engineering/jobRunner.js";
-import { createObservabilityStore } from "../src/observability/observabilityStore.js";
-import { createObservabilityConfig } from "../src/observability/observabilityConfig.js";
-
-function createMockAgent(): Agent {
-  return {
-    id: "engineering-lead",
-    generate: async () => ({ text: "mock response" }),
-  } as unknown as Agent;
-}
-
-function createMockMemory(): Memory {
-  return {
-    getThreadById: async () => null,
-    saveThread: async () => {},
-    saveMessages: async () => {},
-    updateWorkingMemory: async () => {},
-  } as unknown as Memory;
-}
+  cleanupTestGateway,
+  createTestGatewayRuntime,
+} from "./gatewayTestHarness.js";
 
 describe("gateway session commands", () => {
-  async function createRuntime() {
-    const dir = mkdtempSync(join(tmpdir(), "michael-os-gw-"));
-    const config = {
-      ...loadConfig(),
-      stateDir: join(dir, "state"),
-      mastraDir: join(dir, ".mastra"),
-      logDir: join(dir, "logs"),
-    };
-    const observability = createObservabilityStore({
-      logDir: config.logDir,
-      mastraDir: config.mastraDir,
-      config: createObservabilityConfig({ level: "minimal" }),
-    });
-    const jobRegistry = createJobRegistry(config.mastraDir);
-    const jobRunner = createJobRunner({ jobRegistry, observability });
-    const ctx = createEngineeringSessionContext(config, {
-      observability,
-      jobRegistry,
-      jobRunner,
-      repoPath: process.cwd(),
-      qaEngineerAgent: createMockAgent(),
-    });
-    const runtime = await createGatewayRuntime({
-      config,
-      ctx,
-      agent: createMockAgent(),
-      memory: createMockMemory(),
-      memorySession: createGatewayMemorySession(),
-    });
-    return { dir, jobRegistry, runtime };
-  }
-
   it("jobs lists recent job records", async () => {
-    const { dir, jobRegistry, runtime } = await createRuntime();
+    const { dir, ctx, runtime } = await createTestGatewayRuntime();
     try {
-      await jobRegistry.createJob({
+      await ctx.jobRegistry.createJob({
         kind: "code-review",
         parentWorkItem: "feat-a",
         issueNumber: 1,
@@ -82,24 +24,24 @@ describe("gateway session commands", () => {
       expect(text).toContain("code-review");
       expect(text).toContain("#1");
     } finally {
-      rmSync(dir, { recursive: true, force: true });
+      cleanupTestGateway(dir);
     }
   });
 
   it("jobs reports empty when no records exist", async () => {
-    const { dir, runtime } = await createRuntime();
+    const { dir, runtime } = await createTestGatewayRuntime();
     try {
       const result = await processGatewayLine(runtime, "jobs");
       expect(result.output.join("")).toContain("No jobs found");
     } finally {
-      rmSync(dir, { recursive: true, force: true });
+      cleanupTestGateway(dir);
     }
   });
 
   it("job <id> shows job detail by prefix", async () => {
-    const { dir, jobRegistry, runtime } = await createRuntime();
+    const { dir, ctx, runtime } = await createTestGatewayRuntime();
     try {
-      const job = await jobRegistry.createJob({
+      const job = await ctx.jobRegistry.createJob({
         kind: "code-review",
         parentWorkItem: "feat-b",
         delegatedTo: "qa-engineer",
@@ -113,27 +55,61 @@ describe("gateway session commands", () => {
       expect(text).toContain("feat-b");
       expect(text).toContain("qa-engineer");
     } finally {
-      rmSync(dir, { recursive: true, force: true });
+      cleanupTestGateway(dir);
     }
   });
 
   it("job <id> reports unknown job", async () => {
-    const { dir, runtime } = await createRuntime();
+    const { dir, runtime } = await createTestGatewayRuntime();
     try {
       const result = await processGatewayLine(runtime, "job deadbeef");
       expect(result.output.join("")).toContain('No job matching "deadbeef"');
     } finally {
-      rmSync(dir, { recursive: true, force: true });
+      cleanupTestGateway(dir);
     }
   });
 
   it("health returns ok", async () => {
-    const { dir, runtime } = await createRuntime();
+    const { dir, runtime } = await createTestGatewayRuntime();
     try {
       const result = await processGatewayLine(runtime, "health");
       expect(result.output).toEqual(["ok"]);
     } finally {
-      rmSync(dir, { recursive: true, force: true });
+      cleanupTestGateway(dir);
+    }
+  });
+
+  it("@skill-engineer switches route and thread", async () => {
+    const { dir, runtime } = await createTestGatewayRuntime();
+    try {
+      const beforeThread = getThreadIdForRoute(
+        runtime.routeState,
+        runtime.routeState.activeAgentId,
+      );
+      const result = await processGatewayLine(runtime, "@skill-engineer");
+      const afterThread = getThreadIdForRoute(
+        runtime.routeState,
+        "skill-engineer",
+      );
+      expect(result.output.join("")).toContain("@skill-engineer");
+      expect(runtime.routeState.activeAgentId).toBe("skill-engineer");
+      expect(afterThread).not.toBe(beforeThread);
+      expect(afterThread).toBe("thread-skill-engineer");
+    } finally {
+      cleanupTestGateway(dir);
+    }
+  });
+
+  it("agents lists direct-chat agents from registry", async () => {
+    const { dir, runtime } = await createTestGatewayRuntime();
+    try {
+      const result = await processGatewayLine(runtime, "agents");
+      const text = result.output.join("");
+      expect(text).toContain("@engineering-lead");
+      expect(text).toContain("@skill-engineer");
+      expect(text).toContain("@engagement-manager");
+    } finally {
+      cleanupTestGateway(dir);
     }
   });
 });

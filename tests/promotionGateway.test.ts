@@ -1,74 +1,27 @@
 import { describe, expect, it } from "vitest";
-import { mkdtempSync, rmSync } from "node:fs";
-import { join } from "node:path";
-import { tmpdir } from "node:os";
-import type { Agent } from "@mastra/core/agent";
-import type { Memory } from "@mastra/memory";
-import { loadConfig } from "../src/config/loadConfig.js";
-import { createEngineeringSessionContext } from "../src/engineering/sessionContext.js";
-import { createGatewayMemorySession } from "../src/engineering/gatewaySession.js";
-import {
-  createGatewayRuntime,
-  processGatewayLine,
-} from "../src/gateway/session.js";
-import { createJobRegistry } from "../src/engineering/jobRegistry.js";
-import { createJobRunner } from "../src/engineering/jobRunner.js";
-import { createObservabilityStore } from "../src/observability/observabilityStore.js";
-import { createObservabilityConfig } from "../src/observability/observabilityConfig.js";
+import { processGatewayLine } from "../src/gateway/session.js";
 import { createPromotionRegistry } from "../src/engineering/promotionRegistry.js";
 import { requestApproval } from "../src/engineering/approvalGate.js";
-
-function createMockAgent(): Agent {
-  return {
-    id: "engineering-lead",
-    generate: async () => ({ text: "mock response" }),
-  } as unknown as Agent;
-}
-
-function createMockMemory(): Memory {
-  return {
-    getThreadById: async () => null,
-    saveThread: async () => {},
-    saveMessages: async () => {},
-    updateWorkingMemory: async () => {},
-  } as unknown as Memory;
-}
+import {
+  cleanupTestGateway,
+  createTestGatewayRuntime,
+} from "./gatewayTestHarness.js";
 
 describe("promotion gateway commands", () => {
-  async function createRuntime() {
-    const dir = mkdtempSync(join(tmpdir(), "michael-os-promo-gw-"));
-    const config = {
-      ...loadConfig(),
-      stateDir: join(dir, "state"),
-      mastraDir: join(dir, ".mastra"),
-      logDir: join(dir, "logs"),
-    };
-    const observability = createObservabilityStore({
-      logDir: config.logDir,
-      mastraDir: config.mastraDir,
-      config: createObservabilityConfig({ level: "minimal" }),
+  async function createRuntime(options?: {
+    ghRunner?: () => Promise<{ stdout: string; stderr: string; exitCode: number }>;
+  }) {
+    const harness = await createTestGatewayRuntime({
+      extraCtx: {
+        ghRunner:
+          options?.ghRunner ??
+          (async () => ({ stdout: "", stderr: "", exitCode: 0 })),
+        gitRunner: () => ({ stdout: "abc123\n", stderr: "", exitCode: 0 }),
+      },
     });
-    const jobRegistry = createJobRegistry(config.mastraDir);
-    const jobRunner = createJobRunner({ jobRegistry, observability });
-    const promotionRegistry = createPromotionRegistry(config.mastraDir);
-    const ctx = createEngineeringSessionContext(config, {
-      observability,
-      jobRegistry,
-      jobRunner,
-      promotionRegistry,
-      repoPath: process.cwd(),
-      qaEngineerAgent: createMockAgent(),
-      gitRunner: () => ({ stdout: "abc123\n", stderr: "", exitCode: 0 }),
-      ghRunner: async () => ({ stdout: "", stderr: "", exitCode: 0 }),
-    });
-    const runtime = await createGatewayRuntime({
-      config,
-      ctx,
-      agent: createMockAgent(),
-      memory: createMockMemory(),
-      memorySession: createGatewayMemorySession(),
-    });
-    return { dir, promotionRegistry, runtime };
+    const promotionRegistry = createPromotionRegistry(harness.config.mastraDir);
+    harness.ctx.promotionRegistry = promotionRegistry;
+    return { ...harness, promotionRegistry };
   }
 
   it("promotions lists promotion ledger entries", async () => {
@@ -89,7 +42,7 @@ describe("promotion gateway commands", () => {
       expect(text).toContain("feat-a");
     } finally {
       await promotionRegistry.close();
-      rmSync(dir, { recursive: true, force: true });
+      cleanupTestGateway(dir);
     }
   });
 
@@ -113,7 +66,7 @@ describe("promotion gateway commands", () => {
       expect(text).toContain("feat-b");
     } finally {
       await promotionRegistry.close();
-      rmSync(dir, { recursive: true, force: true });
+      cleanupTestGateway(dir);
     }
   });
 
@@ -133,7 +86,7 @@ describe("promotion gateway commands", () => {
       expect(runtime.ctx.approval.pending?.toolId).toBe("rollback");
     } finally {
       await promotionRegistry.close();
-      rmSync(dir, { recursive: true, force: true });
+      cleanupTestGateway(dir);
     }
   });
 
@@ -161,7 +114,7 @@ describe("promotion gateway commands", () => {
       expect(runtime.ctx.approval.pending).toBeUndefined();
     } finally {
       await promotionRegistry.close();
-      rmSync(dir, { recursive: true, force: true });
+      cleanupTestGateway(dir);
     }
   });
 });

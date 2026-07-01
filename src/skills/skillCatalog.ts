@@ -23,6 +23,14 @@ export const AUTHORING_TOOL_IDS = [
   "activate-agent",
 ] as const;
 
+/** Phase 4b Engagement Manager triage tools. */
+export const ENGAGEMENT_TOOL_IDS = [
+  "registry-scan",
+  "comprehend-reuse",
+  "framework-first-check",
+  "record-necessity-verdict",
+] as const;
+
 /** Registered Mastra workflow ids skills may declare. */
 export const KNOWN_WORKFLOW_IDS = [
   "demo-vault-summary",
@@ -40,6 +48,9 @@ export function collectKnownToolIds(): Set<string> {
     ids.add(toolId);
   }
   for (const toolId of AUTHORING_TOOL_IDS) {
+    ids.add(toolId);
+  }
+  for (const toolId of ENGAGEMENT_TOOL_IDS) {
     ids.add(toolId);
   }
   return ids;

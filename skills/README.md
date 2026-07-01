@@ -53,7 +53,7 @@ Frontmatter `metadata.scope` is the source of truth (`shared` or `[agent-id, …
 | `write-skill` | [write-skill/SKILL.md](./write-skill/SKILL.md) | `[skill-engineer]` | Meta-authoring SOP |
 | `skill-eval-design` | [skill-eval-design/SKILL.md](./skill-eval-design/SKILL.md) | `[skill-engineer]` | EDD case design SOP |
 
-Gateway: `npm run skill-gateway` (direct chat with the Skill Engineer). Lifecycle tools: `create-skill`, `edit-skill`, `validate-skill`, `eval-skill`, `deprecate-skill`, `archive-skill`, `request-tool-build`.
+Gateway: `npm run gateway` then `@skill-engineer` to switch routes (Phase 4b multi-agent chat). Lifecycle tools: `create-skill`, `edit-skill`, `validate-skill`, `eval-skill`, `deprecate-skill`, `archive-skill`, `request-tool-build`.
 
 ### Eval commands
 
