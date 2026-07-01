@@ -127,9 +127,10 @@ describe("buildVerification", () => {
       assertAllGatesPresent(verdict, REQUIRED_FULL_GATES);
       expect(verdict.gates[0]?.kind).toBe("ci");
       expect(verdict.gates[1]?.kind).toBe("permission-scan");
-      expect(verdict.gates[2]?.kind).toBe("code-review");
-      expect(verdict.gates[3]?.kind).toBe("security-review");
-      expect(verdict.gates[4]?.kind).toBe("remote-ci");
+      expect(verdict.gates[2]?.kind).toBe("mock-contract");
+      expect(verdict.gates[3]?.kind).toBe("code-review");
+      expect(verdict.gates[4]?.kind).toBe("security-review");
+      expect(verdict.gates[5]?.kind).toBe("remote-ci");
     } finally {
       rmSync(dir, { recursive: true, force: true });
     }

@@ -13,6 +13,11 @@ import {
 import { scanPermissionDiff } from "./permissionScan.js";
 import { getPrChecks, type GhRunner } from "./github.js";
 import type { Agent } from "@mastra/core/agent";
+import {
+  runMockContractGate,
+  scanSideEffectingToolContract,
+  type SideEffectingToolContract,
+} from "../authoring/mockContractGate.js";
 
 export type RunBuildVerificationOptions = {
   worktreePath: string;
@@ -24,6 +29,8 @@ export type RunBuildVerificationOptions = {
   githubRepo?: string;
   ghRunner?: GhRunner;
   remoteCiOverride?: boolean;
+  mockContractOverride?: boolean;
+  sideEffectingToolContracts?: SideEffectingToolContract[];
 };
 
 export function runCiGate(worktreePath: string): GateResult {
@@ -153,20 +160,27 @@ export async function runRemoteCiGate(
   };
 }
 
-/** Deterministic gate ordering: CI → permission → code → security → remote CI (ADR 0008). */
+/** Deterministic gate ordering: CI → permission → mock-contract → code → security → remote CI. */
 export async function runBuildVerification(
   options: RunBuildVerificationOptions,
 ): Promise<BuildVerificationVerdict> {
   const ciGate = runCiGate(options.worktreePath);
   const permissionGate = runPermissionScanGate(options.codeReviewInput.gitDiff);
+  const mockContractGate = runMockContractGate(
+    options.sideEffectingToolContracts ?? [],
+    options.mockContractOverride ?? false,
+  );
   const codeReviewGate = await runCodeReviewGate(options);
   const securityGate = await runSecurityReviewGate(options);
   const remoteCiGate = await runRemoteCiGate(options);
   return aggregateGateResults([
     ciGate,
     permissionGate,
+    mockContractGate,
     codeReviewGate,
     securityGate,
     remoteCiGate,
   ]);
 }
+
+export { scanSideEffectingToolContract };
