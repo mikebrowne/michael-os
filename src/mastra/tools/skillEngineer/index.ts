@@ -22,6 +22,14 @@ import { createIssue } from "../../../engineering/github.js";
 import { runDeterministicSkillEval } from "../../../skills/skillEvalRunner.js";
 import { runComprehension } from "../../../agentBuild/comprehension.js";
 import { requireCursorKey } from "../../../config/loadConfig.js";
+import { createAuthoringTools } from "../../../authoring/authoringTools.js";
+import {
+  requestActivationApproval,
+  logActivationAudit,
+} from "../../../authoring/authoringApprovalSeam.js";
+import { assertSkillHasEvalBeforeActivation } from "../../../authoring/skillUsageSignal.js";
+import { updateSkillStatus } from "../../../skills/skillBundleIO.js";
+import { createEngineeringTelemetry } from "../../../engineering/engineeringTelemetry.js";
 
 function parseScopeInput(scope: string | string[]): SkillScope {
   if (scope === "shared") return "shared";
@@ -55,6 +63,18 @@ function checkDangerousDeclaration(
 }
 
 export function createSkillEngineerTools(ctx: SkillEngineerSessionContext) {
+  const telemetry = createEngineeringTelemetry(ctx.observability);
+  const authoring = createAuthoringTools({
+    repoPath: ctx.repoPath,
+    githubRepo: ctx.githubRepo,
+    ghRunner: ctx.ghRunner,
+    approval: ctx.approval,
+    observability: ctx.observability,
+    telemetry,
+    authoringCap: ctx.config.authoringCap,
+    proposalsEnabled: ctx.config.authoringProposalsEnabled,
+  });
+
   const createSkill = createTool({
     id: "create-skill",
     description: "Create a new skill bundle (SKILL.md) under skills/<name>/.",
@@ -295,6 +315,53 @@ Routed to **Engineering Lead** for build → QA → promote (not in-process dele
     },
   });
 
+  const activateSkill = createTool({
+    id: "activate-skill",
+    description:
+      "Activate a drafted skill after eval passes and operator approval (Skill Author lighter gate).",
+    inputSchema: z.object({ name: z.string() }),
+    execute: async (input) => {
+      const evalCheck = assertSkillHasEvalBeforeActivation(ctx.repoPath, input.name);
+      if (!evalCheck.ok) {
+        return { blocked: true, message: evalCheck.message };
+      }
+
+      const validation = validateSkill(ctx.repoPath, input.name, ctx.skillTelemetry);
+      if (!validation.valid) {
+        return { blocked: true, message: validation.errors.join("; ") };
+      }
+
+      const evalResult = runDeterministicSkillEval(ctx.repoPath, input.name);
+      if (!evalResult.passed) {
+        return {
+          blocked: true,
+          message: `Eval must pass before activation: ${evalResult.results.map((r) => r.notes).join("; ")}`,
+        };
+      }
+
+      const seam = requestActivationApproval(ctx.approval, {
+        category: "skill",
+        artifactId: input.name,
+      });
+      if (!seam.approved) {
+        return { needsApproval: true, message: seam.message };
+      }
+
+      logActivationAudit(ctx.observability, telemetry, {
+        category: "skill",
+        artifactId: input.name,
+        approved: true,
+        autoApproved: seam.autoApproved,
+      });
+
+      const skill = loadSkillRegistrationSync(ctx.repoPath, input.name);
+      updateSkillStatus(ctx.repoPath, skill, "active");
+      ctx.skillTelemetry.changed(input.name, "activate", "active");
+
+      return { activated: true, skillName: input.name };
+    },
+  });
+
   return {
     createSkill,
     editSkill,
@@ -304,5 +371,8 @@ Routed to **Engineering Lead** for build → QA → promote (not in-process dele
     archiveSkill,
     requestToolBuild,
     comprehend,
+    proposeExtension: authoring.proposeExtension,
+    requestActivation: authoring.requestActivation,
+    activateSkill,
   };
 }
