@@ -1,14 +1,14 @@
 # Phase 7 — Authoring Agents: fresh-agent build prompt
 
-Hand this to a fresh agent to build Phase 7 from the committed spec. It assumes the Phase 7 docs
-(north star, grill notes, PRD, ADRs 0013/0014, issues doc) are on the working branch / `main`.
+Hand this to a fresh agent to build Phase 7. The Phase 7 spec (north star, grill notes, PRD, ADRs
+0013/0014, issues doc) is on `main`, and CI on `main` is green — start from `main`.
 
 ---
 
 ```
 You are building Phase 7 — Authoring Agents for MichaelOS ("the system can safely extend itself").
 This phase was fully grilled and scoped; do NOT re-litigate the decisions. Your job is to BUILD it,
-in thin vertical slices, following the committed spec.
+in thin vertical slices, following the committed spec. Start from an up-to-date `main`.
 
 ## Read first (in this order)
 - docs/phase-7-authoring-agents.md         (north star)
@@ -48,7 +48,8 @@ Also skim how Phase 6 was built (skillRegistry, skill bundles, Skill Engineer) a
 
 ## How to work
 - Build in this slice order; ONE slice per branch/PR; keep each independently shippable + reversible:
-  0. BL-014a — (mostly done in the docs PR) confirm ADRs/vocab/init/naming; add anything missing.
+  0. BL-014a — (the docs/ADRs/vocab/init already landed via #50) confirm Slice 0 is complete; add
+     anything missing (naming, etc.).
   1. BL-014b — authoring foundation: authoring-policy skill + Issue-first proposal gate (reuse the
      grill→PRD→github-create-issue flow) + backlog-as-queue + the single approval seam + attempt-cap.
   2. BL-014c — Skill Author: Skill Engineer autonomous notice→propose→draft→activate on the lighter gate.
@@ -63,11 +64,25 @@ Also skim how Phase 6 was built (skillRegistry, skill bundles, Skill Engineer) a
      +agent, eval matrix + CI green.
 - Every behavior change ships a test/eval. Nothing the system authors may activate without its own
   passing check. Red/green discipline (write the failing test first).
-- Per slice: implement → npm run typecheck && npm run lint && npm run test (and npm run eval:skills
-  locally where relevant) → commit (clear message, conventional style like the existing history) → push
-  → open/update a PR with "Closes #<slice issue>" → check in with the operator before the next slice.
-- Use the PR template. Draft PRs by default. Do not merge/auto-merge. Do not force-push or rewrite
-  history. Do not leave the branch you're on without asking.
+- Build the WHOLE phase in one continuous run — do NOT pause for operator approval between slices.
+  Work on a SINGLE phase-7 branch for all slices; make one clean commit per slice (conventional style
+  like the existing history) so the history stays sliced and reversible; push as you go and maintain ONE
+  draft PR for the phase, keeping its body updated with per-slice progress and "Closes #<issue>" lines.
+- Per slice: implement → keep CI green (see below) → commit → push. Then continue straight to the next
+  slice. Only stop early for a genuine blocker (e.g., an assumed framework API doesn't exist — apply the
+  documented fallback or, if truly stuck, surface it) — otherwise run through all of BL-014a..g.
+- Use the PR template. Keep the PR a draft. Do not merge/auto-merge and do not mark it ready for review.
+  Do not force-push or rewrite history.
+
+## CI must stay green (it is green on main now — keep it that way)
+- CI runs `npm run typecheck && npm run lint && npm run build && npm test` with ZERO secrets (no
+  OPENAI/CURSOR keys). Every slice must pass all four with no env keys set.
+- Any test that exercises an agent/model path must use a MOCK agent and/or a non-placeholder FAKE key in
+  its config so it runs keyless — follow the existing pattern in tests/delegationMachinery.test.ts and
+  tests/observability.test.ts. Real-model behavior belongs in local-only eval scripts
+  (npm run eval:skills), never in the keyless CI suite.
+- Side-effecting tools you author must ship a testMode mock + a test proving the side effect is
+  suppressed (the BL-014d mock-contract gate) — and that test must pass keyless.
 
 ## Guardrails (always-on rules)
 - Public-safe: no secrets, .env values, real Vault data, or personal info in the repo. Tests/demos use
@@ -78,13 +93,16 @@ Also skim how Phase 6 was built (skillRegistry, skill bundles, Skill Engineer) a
 - Determinism ratchet: judgment in skills, danger in tools (which keep full QA).
 
 ## Issues / tracking
-- GitHub issue creation may be unavailable to you (read-only gh). If so, BUILD from the committed
-  docs/prds/phase-7-authoring-agents.issues.md as the spec, reference the BL-014x IDs in your branch
-  names/PRs, and leave a note in your final summary that the BL-014 epic + slice issues still need to be
-  filed and the docs/README.md backlog table updated. If you DO have issue-write access (token/MCP),
-  file them from that doc and update the backlog table.
+- The BL-014 epic + slice issues (BL-014a..g) are written in docs/prds/phase-7-authoring-agents.issues.md
+  but may not be filed on GitHub yet. If you have issue-write access (token/MCP), file them from that doc
+  and update the docs/README.md backlog table; otherwise BUILD from that doc as the spec, reference the
+  BL-014x IDs in your branch names/PRs, and note in your summary that the issues still need filing.
 
 ## Start
-Begin with Slice 1 (BL-014b) after confirming Slice 0 is complete. Post a short plan for BL-014b
-(files you'll add/change + the test you'll write first) and proceed.
+Build the ENTIRE phase — slices BL-014a through BL-014g — in order, in ONE continuous run, without
+stopping for approval between slices. Post a brief up-front plan for the whole phase (the files/skills/
+tools/agent-bundles you'll add per slice and the key tests you'll write first, all keyless-CI-safe),
+then proceed through every slice. Keep CI green at each commit. Finish only when all slices are done,
+CI is green keyless, and the north-star exit criteria in docs/phase-7-authoring-agents.md are met — then
+summarize what landed and what (if anything, e.g. filing the BL-014 issues) still needs the operator.
 ```
