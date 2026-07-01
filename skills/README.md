@@ -20,7 +20,7 @@ The **Engineering Lead** discovers these via `src/skills/skillRegistry.ts` over 
 |-------|------|-------|-------------|
 | `code-review` | [code-review/SKILL.md](./code-review/SKILL.md) | Code Reviewer | Advisory verdict (`approve` / `request-changes` / `block`) via `review-build` |
 
-Department roster is defined in `src/mastra/agentRegistry.ts`. See [docs/phase-3-engineering-department.md](../docs/phase-3-engineering-department.md).
+Department roster is defined in [`agents/`](../agents/) (derived [`agentRegistry`](../src/mastra/agentRegistry.ts) view). See [docs/phase-3-engineering-department.md](../docs/phase-3-engineering-department.md).
 
 See [docs/phase-2-engineering-loop.md](../docs/phase-2-engineering-loop.md) for the full north star and grill decisions.
 
@@ -63,3 +63,18 @@ Gateway: `npm run skill-gateway` (direct chat with the Skill Engineer). Lifecycl
 | `npm run eval:skills` | Local-only — progressive-loading recall, code-review verdict shape, testMode fixture buckets |
 
 See [docs/phase-6-skill-platform.md](../docs/phase-6-skill-platform.md), [ADR 0009](../docs/adr/0009-mastra-agent-skills-substrate.md), and [ADR 0010](../docs/adr/0010-skill-permission-lifecycle.md).
+
+## Phase 7 — Authoring Agents
+
+Autonomous **notice → propose → draft → operator-activate** for skills, tools, workflows, and agents. Judgment lives in skills; muscle in tools.
+
+| Skill | Path | Scope | Role |
+|-------|------|-------|------|
+| `author-policy` | [author-policy/SKILL.md](./author-policy/SKILL.md) | `[engineering-lead, skill-engineer]` | Recommend skill vs tool vs workflow vs agent |
+| `propose-extension` | [propose-extension/SKILL.md](./propose-extension/SKILL.md) | `[engineering-lead, skill-engineer]` | Draft backlog Issue before building |
+| `write-tool` | [write-tool/SKILL.md](./write-tool/SKILL.md) | `[engineering-lead]` | Tool Author — harden hot skill into tool |
+| `write-workflow` | [write-workflow/SKILL.md](./write-workflow/SKILL.md) | `[engineering-lead]` | Workflow Author — full code pipeline |
+| `hire-agent` | [hire-agent/SKILL.md](./hire-agent/SKILL.md) | `[engineering-lead]` | Hiring judgment + agent bundle draft |
+| `onboard-agent` | [onboard-agent/SKILL.md](./onboard-agent/SKILL.md) | `[engineering-lead]` | Onboarding smoke-test + activation |
+
+Agent rosters are **committed bundles** under [`agents/`](../agents/) (derived `agentRegistry` view). See [docs/phase-7-authoring-agents.md](../docs/phase-7-authoring-agents.md) and [agents/README.md](../agents/README.md).
