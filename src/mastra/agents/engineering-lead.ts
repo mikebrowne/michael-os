@@ -109,6 +109,13 @@ export function createEngineeringLeadAgent(
       promote: tools.promoteTool,
       rollback: tools.rollbackTool,
       restart: tools.restartTool,
+      proposeExtension: tools.proposeExtension,
+      requestActivation: tools.requestActivation,
+      hardenSkillIntoTool: tools.hardenSkillIntoTool,
+      scaffoldWorkflow: tools.scaffoldWorkflow,
+      draftAgentBundle: tools.draftAgentBundle,
+      onboardAgentTool: tools.onboardAgentTool,
+      activateAgent: tools.activateAgent,
     },
     "management",
   );
