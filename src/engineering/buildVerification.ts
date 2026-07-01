@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-export const GATE_KINDS = ["ci", "permission-scan", "code-review", "security-review", "remote-ci"] as const;
+export const GATE_KINDS = ["ci", "permission-scan", "code-review", "security-review", "remote-ci", "mock-contract"] as const;
 export type GateKind = (typeof GATE_KINDS)[number];
 
 export const gateFindingSchema = z.object({
@@ -76,6 +76,7 @@ export const REQUIRED_SLICE2_GATES: GateKind[] = ["ci", "code-review"];
 export const REQUIRED_FULL_GATES: GateKind[] = [
   "ci",
   "permission-scan",
+  "mock-contract",
   "code-review",
   "security-review",
   "remote-ci",

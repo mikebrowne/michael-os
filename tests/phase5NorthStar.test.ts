@@ -29,6 +29,7 @@ describe("phase 5 north star consolidation", () => {
     expect(REQUIRED_FULL_GATES).toEqual([
       "ci",
       "permission-scan",
+      "mock-contract",
       "code-review",
       "security-review",
       "remote-ci",

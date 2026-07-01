@@ -3,6 +3,7 @@ import { z } from "zod";
 import { writeFileSync, readFileSync, existsSync, mkdirSync } from "node:fs";
 import { join } from "node:path";
 import type { EngineeringSessionContext } from "../../../engineering/sessionContext.js";
+import { createEngineeringAuthoringTools } from "../../../authoring/engineeringAuthoringTools.js";
 import {
   createWorkItem,
   ensurePrdsDir,
@@ -1419,6 +1420,8 @@ export function createEngineeringTools(ctx: EngineeringSessionContext) {
     },
   });
 
+  const authoringTools = createEngineeringAuthoringTools(ctx);
+
   async function replayDangerousTool(): Promise<Record<string, unknown>> {
     const pending = ctx.approval.pending;
     if (!pending) {
@@ -1488,6 +1491,13 @@ export function createEngineeringTools(ctx: EngineeringSessionContext) {
     promoteTool,
     rollbackTool,
     restartTool,
+    proposeExtension: authoringTools.proposeExtension,
+    requestActivation: authoringTools.requestActivation,
+    hardenSkillIntoTool: authoringTools.hardenSkillIntoTool,
+    scaffoldWorkflow: authoringTools.scaffoldWorkflow,
+    draftAgentBundle: authoringTools.draftAgentBundle,
+    onboardAgentTool: authoringTools.onboardAgentTool,
+    activateAgent: authoringTools.activateAgent,
     replayDangerousTool,
   };
 }

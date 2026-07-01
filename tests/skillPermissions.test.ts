@@ -21,7 +21,7 @@ import {
 const REPO_ROOT = process.cwd();
 
 describe("skillPermissions", () => {
-  it("all 7 production skills pass validation", () => {
+  it("all production skills pass validation", () => {
     for (const skill of discoverSkillsSync(REPO_ROOT)) {
       const result = validateSkill(REPO_ROOT, skill.name);
       expect(result.valid, `${skill.name}: ${result.errors.join("; ")}`).toBe(

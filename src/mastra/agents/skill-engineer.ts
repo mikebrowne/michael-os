@@ -64,6 +64,9 @@ export function createSkillEngineerAgent(
       archiveSkill: tools.archiveSkill,
       requestToolBuild: tools.requestToolBuild,
       comprehend: tools.comprehend,
+      proposeExtension: tools.proposeExtension,
+      requestActivation: tools.requestActivation,
+      activateSkill: tools.activateSkill,
     },
   });
 }

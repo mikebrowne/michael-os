@@ -1,133 +1,41 @@
-export type AgentKind = "mastra-agent" | "external-executor" | "skill";
+import { discoverActiveAgentBundlesSync } from "../authoring/agentBundleRegistry.js";
+import type {
+  AgentRegistration,
+  AgentAuthority,
+  AgentKind,
+} from "./agentRegistration.js";
 
-export type AgentAuthority = "management" | "employee";
+export type { AgentRegistration, AgentAuthority, AgentKind };
 
-export type AgentRegistration = {
-  id: string;
-  role: string;
-  kind: AgentKind;
-  authority: AgentAuthority;
-  description: string;
-  model?: string;
-  directChat: boolean;
-  standalone: boolean;
-  skills?: string[];
-  tools?: string[];
-};
+let cachedRepoRoot: string | undefined;
+let cachedRegistry: AgentRegistration[] | undefined;
 
-export const AGENT_REGISTRY: AgentRegistration[] = [
-  {
-    id: "engineering-lead",
-    role: "Engineering Lead",
-    kind: "mastra-agent",
-    authority: "management",
-    description:
-      "Orchestrates the engineering loop: grill, PRD, tests, build, review, ship.",
-    directChat: true,
-    standalone: false,
-    skills: [
-      "grill-me-with-docs",
-      "to-prd",
-      "research-write-tests",
-      "build-handoff",
-      "ship",
-      "code-review",
-      "cursor-comprehension",
-    ],
-    tools: [
-      "save-grill-notes",
-      "save-prd",
-      "save-test-artifacts",
-      "github-create-issue",
-      "github-update-issue",
-      "list-in-progress",
-      "resume-work-item",
-      "plan-build",
-      "dispatch-slice",
-      "build-status",
-      "interrupt-build",
-      "read-worktree-file",
-      "rerun-test",
-      "tail-build-log",
-      "comprehend",
-      "ingest-pr-feedback",
-      "authorize-build-dispatch",
-      "run-build",
-      "review-build",
-      "verify-build",
-      "ship-docs",
-      "ship-implementation",
-      "stage-implementation",
-      "promote",
-      "rollback",
-      "restart",
-    ],
-  },
-  {
-    id: "software-engineer",
-    role: "Software Engineer",
-    kind: "external-executor",
-    authority: "employee",
-    description:
-      "Writes implementation code via Cursor (runAgentBuild). Not a conversational agent.",
-    directChat: false,
-    standalone: false,
-    tools: ["run-build"],
-  },
-  {
-    id: "qa-engineer",
-    role: "QA Engineer",
-    kind: "mastra-agent",
-    authority: "employee",
-    description:
-      "Runs verification gates on green builds against PRD and acceptance test. Composite verdict before promotion.",
-    model: "reasoning-tier",
-    directChat: false,
-    standalone: true,
-    skills: ["code-review", "security-review"],
-    tools: ["review-build"],
-  },
-  {
-    id: "skill-engineer",
-    role: "Skill Engineer",
-    kind: "mastra-agent",
-    authority: "employee",
-    description:
-      "Authors, edits, validates, and EDD-tests skills under the lighter gate.",
-    directChat: true,
-    standalone: true,
-    skills: ["write-skill", "skill-eval-design", "cursor-comprehension"],
-    tools: [
-      "create-skill",
-      "edit-skill",
-      "validate-skill",
-      "eval-skill",
-      "deprecate-skill",
-      "archive-skill",
-      "request-tool-build",
-      "comprehend",
-    ],
-  },
-  {
-    id: "spec-planning-test",
-    role: "Spec / Planning / Test",
-    kind: "skill",
-    authority: "employee",
-    description: "Judgment skills loaded on Engineering Lead.",
-    directChat: false,
-    standalone: false,
-    skills: ["grill-me-with-docs", "to-prd", "research-write-tests"],
-  },
-];
-
-export function listAgents(): AgentRegistration[] {
-  return [...AGENT_REGISTRY];
+function resolveRegistry(repoRoot: string = process.cwd()): AgentRegistration[] {
+  if (cachedRepoRoot === repoRoot && cachedRegistry) {
+    return cachedRegistry;
+  }
+  cachedRepoRoot = repoRoot;
+  cachedRegistry = discoverActiveAgentBundlesSync(repoRoot);
+  return cachedRegistry;
 }
 
-export function getAgent(id: string): AgentRegistration | undefined {
-  return AGENT_REGISTRY.find((a) => a.id === id);
+/** Reset derived cache (tests). */
+export function resetAgentRegistryCache(): void {
+  cachedRepoRoot = undefined;
+  cachedRegistry = undefined;
 }
 
-export function listMastraAgents(): AgentRegistration[] {
-  return AGENT_REGISTRY.filter((a) => a.kind === "mastra-agent");
+export function listAgents(repoRoot?: string): AgentRegistration[] {
+  return [...resolveRegistry(repoRoot)];
+}
+
+export function getAgent(
+  id: string,
+  repoRoot?: string,
+): AgentRegistration | undefined {
+  return resolveRegistry(repoRoot).find((a) => a.id === id);
+}
+
+export function listMastraAgents(repoRoot?: string): AgentRegistration[] {
+  return resolveRegistry(repoRoot).filter((a) => a.kind === "mastra-agent");
 }

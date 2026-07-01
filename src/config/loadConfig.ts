@@ -32,6 +32,8 @@ export type AppConfig = {
   observabilityLevel: ObservabilityLevel;
   mastraDir: string;
   remediationCap: number;
+  authoringCap: number;
+  authoringProposalsEnabled: boolean;
 };
 
 const DEMO_VAULT_RELATIVE = join("examples", "demo-vault");
@@ -78,6 +80,13 @@ export function loadConfig(cwd: string = process.cwd()): AppConfig {
   );
   const remediationCapRaw = process.env.REMEDIATION_CAP?.trim();
   const remediationCapParsed = remediationCapRaw ? Number(remediationCapRaw) : 3;
+  const authoringCapRaw = process.env.AUTHORING_CAP?.trim();
+  const authoringCapParsed = authoringCapRaw ? Number(authoringCapRaw) : 3;
+  const authoringProposalsRaw = process.env.AUTHORING_PROPOSALS_ENABLED?.trim();
+  const authoringProposalsEnabled =
+    authoringProposalsRaw === undefined || authoringProposalsRaw === ""
+      ? true
+      : !["0", "false", "no"].includes(authoringProposalsRaw.toLowerCase());
   const codingExecutorModeRaw = (
     process.env.CODING_EXECUTOR_MODE ?? "durable"
   ).toLowerCase();
@@ -104,6 +113,8 @@ export function loadConfig(cwd: string = process.cwd()): AppConfig {
     cursorApiKey,
     observabilityLevel,
     remediationCap: Number.isFinite(remediationCapParsed) ? remediationCapParsed : 3,
+    authoringCap: Number.isFinite(authoringCapParsed) ? authoringCapParsed : 3,
+    authoringProposalsEnabled,
     codingExecutorMode,
   };
 }
