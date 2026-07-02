@@ -1,7 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { mkdtempSync, rmSync, readFileSync, existsSync, writeFileSync } from "node:fs";
+import { rmSync, readFileSync, existsSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { tmpdir } from "node:os";
 import {
   createGatewayRouteState,
   loadGatewayRouteState,
