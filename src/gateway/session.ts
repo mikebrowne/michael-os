@@ -37,25 +37,74 @@ import {
   listCursorAgents,
 } from "../agentBuild/buildVisibility.js";
 import { createRunLogger } from "../logging/runLogger.js";
+import type { GatewayRouteState } from "./gatewayRouteRegistry.js";
+import {
+  formatDirectChatAgentsList,
+  getThreadIdForRoute,
+  parseAgentSwitchCommand,
+  saveGatewayRouteState,
+  switchActiveRoute,
+} from "./gatewayRouteRegistry.js";
+import {
+  formatNecessityVerdictSummary,
+  readNecessityVerdict,
+} from "../engagement/necessityVerdict.js";
+
+export type GatewayAgents = Record<string, Agent>;
 
 export type GatewayRuntime = {
-  agent: Agent;
+  agents: GatewayAgents;
+  routeState: GatewayRouteState;
   ctx: EngineeringSessionContext;
   memory: Memory;
-  memorySession: GatewayMemorySession;
   tools: ReturnType<typeof createEngineeringTools>;
   config: AppConfig;
+  repoPath: string;
+  persistRoutes: boolean;
 };
+
+function activeAgentId(runtime: GatewayRuntime): string {
+  return runtime.routeState.activeAgentId;
+}
+
+function activeAgent(runtime: GatewayRuntime): Agent {
+  const id = activeAgentId(runtime);
+  const agent = runtime.agents[id];
+  if (!agent) {
+    throw new Error(`No gateway agent registered for route "${id}".`);
+  }
+  return agent;
+}
+
+function agentPrefix(runtime: GatewayRuntime): string {
+  return `${activeAgentId(runtime)}>`;
+}
+
+function memorySessionForRoute(runtime: GatewayRouteState): GatewayMemorySession {
+  const threadId = getThreadIdForRoute(runtime, runtime.activeAgentId);
+  return { threadId, resourceId: runtime.resourceId };
+}
+
+function persistRoutesIfNeeded(runtime: GatewayRuntime): void {
+  if (runtime.persistRoutes) {
+    saveGatewayRouteState(runtime.repoPath, runtime.routeState);
+  }
+}
 
 async function agentGenerate(
   runtime: GatewayRuntime,
   message: string,
 ): Promise<string> {
-  const response = await runtime.agent.generate(
+  const memorySession = memorySessionForRoute(runtime.routeState);
+  const response = await activeAgent(runtime).generate(
     message,
-    gatewayMemoryOptions(runtime.memorySession),
+    gatewayMemoryOptions(memorySession),
   );
   return response.text ?? "(no response)";
+}
+
+function formatAgentOutput(runtime: GatewayRuntime, text: string): string {
+  return `\n${agentPrefix(runtime)} ${text}\n`;
 }
 
 export type GatewayTurnResult = {
@@ -74,6 +123,51 @@ export async function processGatewayLine(
     return { output };
   }
 
+  const switchAgentId = parseAgentSwitchCommand(trimmed);
+  if (switchAgentId) {
+    const result = switchActiveRoute(
+      runtime.routeState,
+      switchAgentId,
+      runtime.repoPath,
+    );
+    if (!result.ok) {
+      output.push(`\n${result.message}\n`);
+      return { output };
+    }
+    persistRoutesIfNeeded(runtime);
+    const memorySession = memorySessionForRoute(runtime.routeState);
+    await refreshGatewayWorkingMemory(
+      runtime.memory,
+      memorySession,
+      runtime.ctx.currentWorkItem,
+    );
+    output.push(
+      `\nSwitched from @${result.previousAgentId} to @${switchAgentId} (thread ${memorySession.threadId.slice(0, 8)}…).\n`,
+    );
+    return { output };
+  }
+
+  if (trimmed.toLowerCase() === "agents") {
+    output.push(`\n${formatDirectChatAgentsList(runtime.repoPath)}\n`);
+    output.push(`Active route: @${activeAgentId(runtime)}\n`);
+    return { output };
+  }
+
+  if (trimmed.toLowerCase() === "verdict") {
+    const slug = runtime.ctx.currentWorkItem?.slug;
+    if (!slug) {
+      output.push("\nNo current work item — use resume #N first.\n");
+      return { output };
+    }
+    const verdict = readNecessityVerdict(runtime.config.stateDir, slug);
+    if (!verdict) {
+      output.push(`\nNo necessity verdict recorded for "${slug}".\n`);
+      return { output };
+    }
+    output.push(`\n${formatNecessityVerdictSummary(verdict)}\n`);
+    return { output };
+  }
+
   const interruptCommands = ["stop", "cancel"];
   if (interruptCommands.includes(trimmed.toLowerCase())) {
     const slug = runtime.ctx.currentWorkItem?.slug;
@@ -89,7 +183,7 @@ export async function processGatewayLine(
         observability: runtime.ctx.observability,
         runLogger,
       });
-      output.push(`\nengineering-lead> ${result.message}\n`);
+      output.push(formatAgentOutput(runtime, result.message));
       return { output };
     }
   }
@@ -113,16 +207,19 @@ export async function processGatewayLine(
       });
       try {
         const result = await runtime.tools.replayDangerousTool();
-        output.push(`\nengineering-lead> Approved ${toolId}. Result:\n`);
+        output.push(formatAgentOutput(runtime, `Approved ${toolId}. Result:`));
         output.push(JSON.stringify(result, null, 2));
       } catch (error: unknown) {
         output.push(
-          `\nengineering-lead> Error replaying ${toolId}: ${error instanceof Error ? error.message : error}\n`,
+          formatAgentOutput(
+            runtime,
+            `Error replaying ${toolId}: ${error instanceof Error ? error.message : error}`,
+          ),
         );
       }
       await refreshGatewayWorkingMemory(
         runtime.memory,
-        runtime.memorySession,
+        memorySessionForRoute(runtime.routeState),
         runtime.ctx.currentWorkItem,
       );
       return { output };
@@ -151,13 +248,13 @@ export async function processGatewayLine(
           ghRunner: runtime.ctx.ghRunner,
         });
         runtime.ctx.currentWorkItem = routed.workItem;
-        output.push(`\nengineering-lead> ${routed.message}\n`);
+        output.push(formatAgentOutput(runtime, routed.message));
       } else {
-        output.push("\nengineering-lead> Cancelled.\n");
+        output.push(formatAgentOutput(runtime, "Cancelled."));
       }
       await refreshGatewayWorkingMemory(
         runtime.memory,
-        runtime.memorySession,
+        memorySessionForRoute(runtime.routeState),
         runtime.ctx.currentWorkItem,
       );
       return { output };
@@ -171,13 +268,16 @@ export async function processGatewayLine(
     );
     if (runtime.ctx.approval.pending) {
       output.push(
-        `\nengineering-lead> ${needsApprovalMessage(runtime.ctx.approval.pending.toolId)}\n`,
+        formatAgentOutput(
+          runtime,
+          needsApprovalMessage(runtime.ctx.approval.pending.toolId),
+        ),
       );
     }
-    output.push(`\nengineering-lead> ${text}\n`);
+    output.push(formatAgentOutput(runtime, text));
     await refreshGatewayWorkingMemory(
       runtime.memory,
-      runtime.memorySession,
+      memorySessionForRoute(runtime.routeState),
       runtime.ctx.currentWorkItem,
     );
     return { output };
@@ -195,7 +295,7 @@ export async function processGatewayLine(
       }
       await refreshGatewayWorkingMemory(
         runtime.memory,
-        runtime.memorySession,
+        memorySessionForRoute(runtime.routeState),
         item,
       );
     }
@@ -203,10 +303,10 @@ export async function processGatewayLine(
       runtime,
       `Resume work for GitHub issue #${issueNumber}. Use resume-work-item and summarize state. Current slug if known: ${item?.slug ?? "look it up"}.`,
     );
-    output.push(`\nengineering-lead> ${text}\n`);
+    output.push(formatAgentOutput(runtime, text));
     await refreshGatewayWorkingMemory(
       runtime.memory,
-      runtime.memorySession,
+      memorySessionForRoute(runtime.routeState),
       runtime.ctx.currentWorkItem,
     );
     return { output };
@@ -220,7 +320,10 @@ export async function processGatewayLine(
     }
     grantSessionApproval(runtime.ctx.approval, "dispatch-slice", slug);
     output.push(
-      `\nengineering-lead> Pre-authorized dispatch-slice for build "${slug}" until finish/cancel.\n`,
+      formatAgentOutput(
+        runtime,
+        `Pre-authorized dispatch-slice for build "${slug}" until finish/cancel.`,
+      ),
     );
     return { output };
   }
@@ -327,13 +430,13 @@ export async function processGatewayLine(
       return { output };
     }
     requestApproval(runtime.ctx.approval, "rollback", { promotionNumber });
-    output.push(`\nengineering-lead> ${needsApprovalMessage("rollback")}\n`);
+    output.push(formatAgentOutput(runtime, needsApprovalMessage("rollback")));
     return { output };
   }
 
   if (trimmed.toLowerCase() === "restart") {
     requestApproval(runtime.ctx.approval, "restart", {});
-    output.push(`\nengineering-lead> ${needsApprovalMessage("restart")}\n`);
+    output.push(formatAgentOutput(runtime, needsApprovalMessage("restart")));
     return { output };
   }
 
@@ -341,18 +444,25 @@ export async function processGatewayLine(
     const text = await agentGenerate(runtime, trimmed);
     if (runtime.ctx.approval.pending) {
       output.push(
-        `\nengineering-lead> ${needsApprovalMessage(runtime.ctx.approval.pending.toolId)}\n`,
+        formatAgentOutput(
+          runtime,
+          needsApprovalMessage(runtime.ctx.approval.pending.toolId),
+        ),
       );
     }
-    output.push(`\nengineering-lead> ${text}\n`);
+    output.push(formatAgentOutput(runtime, text));
     await refreshGatewayWorkingMemory(
       runtime.memory,
-      runtime.memorySession,
+      memorySessionForRoute(runtime.routeState),
       runtime.ctx.currentWorkItem,
     );
+    persistRoutesIfNeeded(runtime);
   } catch (error: unknown) {
     output.push(
-      `\nengineering-lead> Error: ${error instanceof Error ? error.message : error}\n`,
+      formatAgentOutput(
+        runtime,
+        `Error: ${error instanceof Error ? error.message : error}`,
+      ),
     );
   }
 
@@ -362,17 +472,25 @@ export async function processGatewayLine(
 export async function createGatewayRuntime(options: {
   config: AppConfig;
   ctx: EngineeringSessionContext;
-  agent: Agent;
+  agents: GatewayAgents;
+  routeState: GatewayRouteState;
   memory: Memory;
-  memorySession: GatewayMemorySession;
+  repoPath: string;
+  persistRoutes?: boolean;
 }): Promise<GatewayRuntime> {
   const tools = createEngineeringTools(options.ctx);
   return {
-    agent: options.agent,
+    agents: options.agents,
+    routeState: options.routeState,
     ctx: options.ctx,
     memory: options.memory,
-    memorySession: options.memorySession,
     tools,
     config: options.config,
+    repoPath: options.repoPath,
+    persistRoutes: options.persistRoutes ?? false,
   };
+}
+
+export function gatewayPromptLabel(runtime: GatewayRuntime): string {
+  return agentPrefix(runtime);
 }

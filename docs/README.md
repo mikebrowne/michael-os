@@ -66,8 +66,16 @@ Stable backlog IDs (`BL-NNN`) live in issue titles, e.g. `[BL-004] First end-to-
 | BL-012 | [#39](https://github.com/mikebrowne/michael-os/issues/39) — deferred: aggregate skill metrics |
 | BL-013 | [#40](https://github.com/mikebrowne/michael-os/issues/40) — Phase 7: enforce tool test-mode/mock contract (folds into BL-014d Tool Author) |
 | BL-014 | _to file_ — Phase 7: Authoring Agents epic (grilled 2026-06-30; slices `BL-014a..g`) |
+| BL-015 | [#54](https://github.com/mikebrowne/michael-os/issues/54) — Phase 4b Multi-Agent Chat + Engagement Manager epic (grilled 2026-07-01) |
+| BL-015a | [#55](https://github.com/mikebrowne/michael-os/issues/55) — Slice 0: ADRs 0015/0016 + vocabulary |
+| BL-015b | [#56](https://github.com/mikebrowne/michael-os/issues/56) — Slice 1: multi-route gateway plumbing |
+| BL-015c | [#57](https://github.com/mikebrowne/michael-os/issues/57) — Slice 2: Engagement Manager agent |
+| BL-015d | [#58](https://github.com/mikebrowne/michael-os/issues/58) — Slice 3: supervisor routing |
+| BL-015e | [#59](https://github.com/mikebrowne/michael-os/issues/59) — Slice 4: build-vs-reuse triage tools |
+| BL-015f | [#60](https://github.com/mikebrowne/michael-os/issues/60) — Slice 5: necessity verdict artifact |
+| BL-015g | [#61](https://github.com/mikebrowne/michael-os/issues/61) — Slice 6: north-star verification |
 
-**Next build:** [BL-014](./prds/phase-7-authoring-agents.md) — Phase 7 Authoring Agents (slices `BL-014a..g`, issues _to file_ — see [issues doc](./prds/phase-7-authoring-agents.issues.md)). Phase 6 (BL-008) and Phase 6.5 (steerable loop) shipped — see the [Phase 6.5 north star](./phase-6.5-steerable-loop.md). Phase 7 grilled 2026-06-30 — see [Phase 7 north star](./phase-7-authoring-agents.md), [grill notes](./prds/phase-7-authoring-agents.grill.md).
+**Next build:** [BL-015](./phase-4b-multi-agent-chat.md) — Phase 4b Multi-Agent Chat + Engagement Manager (slices `BL-015a..g`, issues _to file_ — see [issues doc](./prds/phase-4b-multi-agent-chat.issues.md)). Phase 7 (BL-014) docs remain prepared; implementation yields to 4b.
 
 ## Key docs
 
@@ -79,6 +87,7 @@ Stable backlog IDs (`BL-NNN`) live in issue titles, e.g. `[BL-004] First end-to-
 | [phase-5-staging-review-promotion.md](./phase-5-staging-review-promotion.md) | Phase 5 north star, staging, QA Engineer gates, promotion, rollback, restart |
 | [phase-6-skill-platform.md](./phase-6-skill-platform.md) | Phase 6 north star, Mastra Agent Skills substrate, Skill Engineer, EDD, telemetry |
 | [phase-6.5-steerable-loop.md](./phase-6.5-steerable-loop.md) | Phase 6.5 north star, steerable builds (plan-and-slice), Cursor comprehension mode, 100%-off-IDE exit criteria |
+| [phase-4b-multi-agent-chat.md](./phase-4b-multi-agent-chat.md) | Phase 4b north star, multi-agent gateway, Engagement Manager, build-vs-reuse triage, necessity verdicts |
 | [phase-7-authoring-agents.md](./phase-7-authoring-agents.md) | Phase 7 north star, autonomous authoring (Skill/Tool/Workflow Author + Hiring), safe activation, agent bundles |
 | [CONTEXT.md](../CONTEXT.md) | Domain glossary |
 | [AGENTS.md](../AGENTS.md) | Operating rules for humans and agents |
@@ -137,3 +146,5 @@ gh issue list
 - [0012 — Cursor harness for codebase comprehension & reuse discovery](./adr/0012-cursor-comprehension-mode.md)
 - [0013 — Autonomous authoring & safe activation](./adr/0013-autonomous-authoring-safe-activation.md)
 - [0014 — Agents as committed bundles, dynamically registered via Mastra](./adr/0014-agent-bundles-dynamic-registration.md)
+- [0015 — Multi-route gateway chat & thread model](./adr/0015-multi-route-gateway-chat.md)
+- [0016 — Engagement Manager triage & necessity verdicts](./adr/0016-engagement-manager-triage-verdicts.md)

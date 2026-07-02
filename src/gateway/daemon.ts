@@ -1,23 +1,26 @@
 import { createServer, type Server, type Socket } from "node:net";
 import { execSync } from "node:child_process";
-import { mkdirSync, readFileSync, writeFileSync, existsSync } from "node:fs";
-import { join } from "node:path";
 import { loadConfig, requireOpenAiKey } from "../config/loadConfig.js";
 import { ensurePrdsDir } from "../engineering/workItem.js";
-import {
-  bootstrapGatewayWorkingMemory,
-  createGatewayMemorySession,
-} from "../engineering/gatewaySession.js";
+import { bootstrapGatewayWorkingMemory } from "../engineering/gatewaySession.js";
 import {
   createGatewayRuntime,
+  gatewayPromptLabel,
   processGatewayLine,
   type GatewayRuntime,
 } from "./session.js";
 import {
+  buildGatewayAgentsMap,
+  initGatewayRouteState,
+} from "./gatewayAgents.js";
+import { getThreadIdForRoute } from "./gatewayRouteRegistry.js";
+import {
   engineeringLeadAgent,
+  engagementManagerAgent,
   engineeringSession,
   jobRunner,
   memory,
+  skillEngineerAgent,
 } from "../mastra/index.js";
 import { jobNotificationBus, type JobCompletionEvent } from "../engineering/jobRunner.js";
 import {
@@ -33,7 +36,6 @@ import {
 
 export const DEFAULT_GATEWAY_HOST = "127.0.0.1";
 export const DEFAULT_GATEWAY_PORT = 47821;
-const THREAD_STATE_FILE = join(".mastra", "gateway-thread.json");
 
 export type GatewayDaemonOptions = {
   host?: string;
@@ -63,24 +65,6 @@ function broadcastToClients(message: string): void {
   }
 }
 
-function loadOrCreatePersistentThread(repoPath: string): string {
-  const statePath = join(repoPath, THREAD_STATE_FILE);
-  mkdirSync(join(repoPath, ".mastra"), { recursive: true });
-  if (existsSync(statePath)) {
-    const parsed = JSON.parse(readFileSync(statePath, "utf-8")) as {
-      threadId?: string;
-    };
-    if (parsed.threadId) return parsed.threadId;
-  }
-  const session = createGatewayMemorySession();
-  writeFileSync(
-    statePath,
-    `${JSON.stringify({ threadId: session.threadId, resourceId: session.resourceId }, null, 2)}\n`,
-    "utf-8",
-  );
-  return session.threadId;
-}
-
 export async function createGatewayDaemonRuntime(
   options: GatewayDaemonOptions = {},
 ): Promise<{ server: Server; runtime: GatewayRuntime; port: number }> {
@@ -90,11 +74,17 @@ export async function createGatewayDaemonRuntime(
   ensurePrdsDir(config.prdsDir);
 
   const ctx = engineeringSession;
-  const agent = engineeringLeadAgent;
-  const threadId = loadOrCreatePersistentThread(repoPath);
+  const routeState = initGatewayRouteState(repoPath, true);
+  const agents = buildGatewayAgentsMap({
+    engineeringLeadAgent,
+    skillEngineerAgent,
+    engagementManagerAgent,
+    repoPath,
+  });
+
   const memorySession = {
-    threadId,
-    resourceId: "operator" as const,
+    threadId: getThreadIdForRoute(routeState, routeState.activeAgentId),
+    resourceId: routeState.resourceId,
   };
 
   await bootstrapGatewayWorkingMemory(memory, memorySession, ctx.currentWorkItem);
@@ -102,9 +92,11 @@ export async function createGatewayDaemonRuntime(
   const runtime = await createGatewayRuntime({
     config,
     ctx,
-    agent,
+    agents,
+    routeState,
     memory,
-    memorySession,
+    repoPath,
+    persistRoutes: true,
   });
 
   const port = options.port ?? DEFAULT_GATEWAY_PORT;
@@ -128,7 +120,10 @@ export async function createGatewayDaemonRuntime(
     connectedSockets.add(socket);
     let buffer = "";
     socket.write("MichaelOS Engineering Gateway (daemon)\n");
-    socket.write("Commands: exit | resume #N | list | jobs | job <id> | builds | build <id> | stop | cancel | health | promotions | restart\n\n");
+    socket.write(
+      "Commands: @<agent-id> | agents | verdict | exit | resume #N | list | jobs | job <id> | builds | build <id> | stop | cancel | health | promotions | restart\n\n",
+    );
+    socket.write(`Active route: ${gatewayPromptLabel(runtime)}\n\n`);
 
     socket.on("close", () => {
       connectedSockets.delete(socket);

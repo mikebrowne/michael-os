@@ -31,6 +31,16 @@ agents/<id>/
 
 [`agentRegistry`](../src/mastra/agentRegistry.ts) is a **derived, validated view** over discovered bundles (see [ADR 0014](../docs/adr/0014-agent-bundles-dynamic-registration.md)). Runtime registration reuses Mastra `addAgent`; controlled restart is the reliable baseline.
 
+## Phase 4b — Engagement Manager
+
+| Agent | Path | directChat | Role |
+|-------|------|------------|------|
+| **Engagement Manager** | [engagement-manager/agent.md](./engagement-manager/agent.md) | yes | Engineering front door: intake, build-vs-reuse triage, routing |
+| **Engineering Lead** | [engineering-lead/agent.md](./engineering-lead/agent.md) | yes | Orchestrates build loop |
+| **Skill Engineer** | [skill-engineer/agent.md](./skill-engineer/agent.md) | yes | Skill lifecycle |
+
+Use `npm run gateway` (or the daemon + `npm run chat`). Switch routes with `@<agent-id>`; `agents` lists direct-chat agents. Default route: Engagement Manager (`GATEWAY_DEFAULT_AGENT` env).
+
 ## Hiring + onboarding (Phase 7)
 
 1. **Hiring** — EL `hire-agent` skill + `draft-agent-bundle` → proposal Issue → operator go-ahead

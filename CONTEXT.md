@@ -101,8 +101,20 @@ The **employee** sub-agent (Phase 5 upgrade of the Code Reviewer) that runs the 
 _Avoid_: "reviewer" (the QA Engineer owns more than review), "tester" (it orchestrates judgment + deterministic checks)
 
 **Engagement Manager**:
-The coordinator agent (Phase 4b) that is the **conversational front door** for engineering work: it takes the operator's request, runs **build-vs-reuse triage** (does something already exist?), and **routes** to the right specialist (Engineering Lead, Skill Engineer, …). The professional-agency rename of the old **"Ponytail" / Necessity Reviewer**. It is the **engineering-scoped** precursor to the org-wide **Chief of Staff** (Phase 8): the Engagement Manager does intake + simple routing + reuse triage; the Chief of Staff does intelligent, org-wide context routing and delegation summaries.
+The coordinator agent (Phase 4b) that is the **conversational front door** for engineering work: it takes the operator's request, runs **build-vs-reuse triage** (does something already exist?), records a **necessity verdict**, and **routes** to the right specialist (Engineering Lead, Skill Engineer, …). Implemented as a Mastra **supervisor** with those specialists as sub-agents. The professional-agency rename of the old **"Ponytail" / Necessity Reviewer**. It is the **engineering-scoped** precursor to the org-wide **Chief of Staff** (Phase 8): the Engagement Manager does intake + simple routing + reuse triage; the Chief of Staff does intelligent, org-wide context routing and delegation summaries.
 _Avoid_: "Ponytail", "router" (loosely), "Chief of Staff" (that is the broader Phase 8 role); never collapse the two.
+
+**Direct-chat route**:
+A registered agent with `directChat: true` that the operator may talk to directly in the gateway via **`@<agent-id>`**. Each direct-chat route gets its **own Mastra conversation thread** (`resource: operator`) so context does not bleed across agents. The active route is tracked by **`gatewayRouteRegistry`** (`.mastra/gateway-routes.json` on the daemon).
+_Avoid_: "channel" (loosely), conflating route with Job or WorkItem.
+
+**Necessity verdict**:
+The recorded outcome of build-vs-reuse triage — **`build`**, **`reuse`**, or **`adapt`** — with rationale and cited sources (registry / comprehension / framework-first). Persisted as reviewable markdown at `<stateDir>/<work-item-slug>/necessity-verdict.md` and as a correlated **`necessity.verdict`** run-log event.
+_Avoid_: "necessity review" (old Ponytail name), treating the verdict as ground truth without sources.
+
+**`gatewayRouteRegistry`**:
+Thin anti-corruption wrapper over gateway routing state: the **active direct-chat agent id** and a **stable thread id per route**. Projects onto Mastra Memory's `{ thread, resource }` pair on every gateway turn. See ADR 0015.
+_Avoid_: bare "routeRegistry" without the gateway domain prefix in file names (use `gatewayRouteRegistry.ts`).
 
 **Codebase comprehension (Cursor read-only mode)**:
 Using the **Cursor SDK harness as a codebase *reasoning* engine** — mapping structure / "what connects to what" and **discovering whether something is already built** — rather than only writing code. Exposed as a **read-only mode** behind the `CodingExecutor` seam: no writes (enforced by a disposable worktree, not just the prompt), **employee-safe** so many agents may hold it (EL planning, Debugger, Skill Engineer, the Engagement Manager's reuse triage). Output is judgment and must **cite files/symbols** the harness then **deterministically verifies**. Reserve it for judgment-heavy multi-hop questions; use `Grep`/registries for cheap lookups (the determinism ratchet). Contrast **implementation mode** — the existing `run-build` that writes code and stays **management-gated**. See ADR 0012.

@@ -11,6 +11,7 @@ import { demoAgent } from "./agents/demo-agent.js";
 import { createEngineeringLeadAgent } from "./agents/engineering-lead.js";
 import { createQaEngineerAgent } from "./agents/qa-engineer.js";
 import { createSkillEngineerAgent } from "./agents/skill-engineer.js";
+import { createEngagementManagerAgent } from "./agents/engagement-manager.js";
 import { createSkillEngineerSessionContext } from "../skills/skillEngineerSession.js";
 import { demoWorkflow } from "./workflows/demo-workflow.js";
 import { buildVerificationWorkflow } from "./workflows/buildVerificationWorkflow.js";
@@ -27,6 +28,7 @@ export type MastraHarness = {
   runLogger: ReturnType<typeof createRunLogger>;
   qaEngineerAgent: ReturnType<typeof createQaEngineerAgent>;
   skillEngineerAgent: ReturnType<typeof createSkillEngineerAgent>;
+  engagementManagerAgent: ReturnType<typeof createEngagementManagerAgent>;
   skillEngineerSession: ReturnType<typeof createSkillEngineerSessionContext>;
   engineeringLeadAgent: ReturnType<typeof createEngineeringLeadAgent>;
   engineeringSession: ReturnType<typeof createEngineeringSessionContext>;
@@ -85,6 +87,14 @@ export function createMastraHarness(
     qaEngineerAgent,
   );
 
+  const engagementManagerAgent = createEngagementManagerAgent(
+    config.defaultModel,
+    engineeringSession,
+    repoPath,
+    engineeringLeadAgent,
+    skillEngineerAgent,
+  );
+
   const jobRunner = createJobRunner({
     jobRegistry,
     observability: observabilityStore,
@@ -96,7 +106,13 @@ export function createMastraHarness(
   const agentRegistry = listAgents();
 
   const mastra = new Mastra({
-    agents: { demoAgent, engineeringLeadAgent, qaEngineerAgent, skillEngineerAgent },
+    agents: {
+      demoAgent,
+      engineeringLeadAgent,
+      qaEngineerAgent,
+      skillEngineerAgent,
+      engagementManagerAgent,
+    },
     workflows: { demoWorkflow, buildVerificationWorkflow },
     storage,
     logger: new PinoLogger({
@@ -114,6 +130,7 @@ export function createMastraHarness(
     runLogger,
     qaEngineerAgent,
     skillEngineerAgent,
+    engagementManagerAgent,
     skillEngineerSession,
     engineeringLeadAgent,
     engineeringSession,

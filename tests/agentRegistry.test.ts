@@ -20,6 +20,13 @@ describe("agentRegistry", () => {
     expect(mastra.map((a) => a.id)).toContain("qa-engineer");
   });
 
+  it("engagement manager has directChat in phase 4b", () => {
+    const em = getAgent("engagement-manager");
+    expect(em?.directChat).toBe(true);
+    expect(em?.standalone).toBe(true);
+    expect(em?.authority).toBe("employee");
+  });
+
   it("reserves directChat for phase 4b", () => {
     const qaEngineer = getAgent("qa-engineer");
     expect(qaEngineer?.directChat).toBe(false);

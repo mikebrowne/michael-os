@@ -2,7 +2,7 @@
 name: author-policy
 description: Recommend whether a need should become a skill tool workflow or new agent with rationale.
 metadata:
-  scope: [engineering-lead, skill-engineer]
+  scope: [engineering-lead, skill-engineer, engagement-manager]
   allowed-tools: []
   allowed-workflows: []
   status: active
